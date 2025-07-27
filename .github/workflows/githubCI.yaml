@@ -58,7 +58,7 @@ jobs:
 
       - name: Extract App Name & Version
         run: |
-          echo "APP_NAME=$(./gradlew -q getAppName)" >> ${GITHUB_ENV};
+          echo "APP_NAME=$(./gradlew -q getAppName | perl -pe 's/([A-Z])/-\L$1/g')" >> ${GITHUB_ENV};
           echo "APP_VERSION=$(./gradlew -q getAppVersion)" >> ${GITHUB_ENV};
 
       - name: Set Docker Image version
