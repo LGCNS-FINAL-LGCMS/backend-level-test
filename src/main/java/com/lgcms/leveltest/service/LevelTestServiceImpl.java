@@ -40,4 +40,36 @@ public class LevelTestServiceImpl implements LevelTestService {
                 .updatedAt(saved.getUpdatedAt())
                 .build();
     }
+
+    @Override
+    public LevelTestResponse updateQuestion(Long id, LevelTestRequest request) {
+        LevelTest levelTest = levelTestRepository.findById(id)
+                .orElseThrow(() -> new BaseException(LevelTestError.QUESTION_NOT_FOUND));
+
+        levelTest.setCategory(request.getCategory());
+        levelTest.setDifficulty(request.getDifficulty());
+        levelTest.setQuestion(request.getQuestion());
+        levelTest.setAnswer(request.getAnswer());
+
+        LevelTest updated = levelTestRepository.save(levelTest);
+
+        return LevelTestResponse.builder()
+                .id(updated.getId())
+                .category(updated.getCategory())
+                .difficulty(updated.getDifficulty())
+                .question(updated.getQuestion())
+                .answer(updated.getAnswer())
+                .createdAt(updated.getCreatedAt())
+                .updatedAt(updated.getUpdatedAt())
+                .build();
+    }
+
+    @Override
+    public void deleteQuestion(Long id) {
+        LevelTest levelTest = levelTestRepository.findById(id)
+                .orElseThrow(() -> new BaseException(LevelTestError.QUESTION_NOT_FOUND));
+
+        levelTestRepository.delete(levelTest);
+    }
+
 }

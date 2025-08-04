@@ -18,4 +18,17 @@ public class LevelTestController {
     public BaseResponse<LevelTestResponse> createQuestion(@RequestBody LevelTestRequest request) {
         return BaseResponse.ok(levelTestService.createQuestion(request));
     }
+
+    @PutMapping("/{id}")
+    public BaseResponse<LevelTestResponse> updateQuestion(@PathVariable Long id,
+                                                          @RequestBody LevelTestRequest request) {
+        return BaseResponse.ok(levelTestService.updateQuestion(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public BaseResponse<String> deleteQuestion(@PathVariable Long id) {
+        levelTestService.deleteQuestion(id);
+        return BaseResponse.ok("삭제 완료");
+    }
+
 }
