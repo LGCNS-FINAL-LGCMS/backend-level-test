@@ -7,6 +7,8 @@ import com.lgcms.leveltest.service.LevelTestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/internal/leveltest")
 @RequiredArgsConstructor
@@ -29,6 +31,16 @@ public class InternalLevelTestController {
     public BaseResponse<String> deleteQuestionInternal(@PathVariable Long id) {
         levelTestService.deleteQuestion(id);
         return BaseResponse.ok("삭제 완료");
+    }
+
+    @GetMapping("/{id}")
+    public BaseResponse<LevelTestResponse> getQuestionInternal(@PathVariable Long id) {
+        return BaseResponse.ok(levelTestService.getQuestion(id));
+    }
+
+    @GetMapping("")
+    public BaseResponse<List<LevelTestResponse>> getAllQuestionsInternal() {
+        return BaseResponse.ok(levelTestService.getAllQuestions());
     }
 
 }

@@ -9,6 +9,8 @@ import com.lgcms.leveltest.repository.LevelTestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class LevelTestServiceImpl implements LevelTestService {
@@ -70,6 +72,38 @@ public class LevelTestServiceImpl implements LevelTestService {
                 .orElseThrow(() -> new BaseException(LevelTestError.QUESTION_NOT_FOUND));
 
         levelTestRepository.delete(levelTest);
+    }
+
+    @Override
+    public LevelTestResponse getQuestion(Long id) {
+        LevelTest levelTest = levelTestRepository.findById(id)
+                .orElseThrow(() -> new BaseException(LevelTestError.QUESTION_NOT_FOUND));
+
+        return LevelTestResponse.builder()
+                .id(levelTest.getId())
+                .category(levelTest.getCategory())
+                .difficulty(levelTest.getDifficulty())
+                .question(levelTest.getQuestion())
+                .answer(levelTest.getAnswer())
+                .createdAt(levelTest.getCreatedAt())
+                .updatedAt(levelTest.getUpdatedAt())
+                .build();
+    }
+
+    @Override
+    public List<LevelTestResponse> getAllQuestions() {
+        return levelTestRepository.findAll()
+                .stream()
+                .map(levelTest -> LevelTestResponse.builder()
+                        .id(levelTest.getId())
+                        .category(levelTest.getCategory())
+                        .difficulty(levelTest.getDifficulty())
+                        .question(levelTest.getQuestion())
+                        .answer(levelTest.getAnswer())
+                        .createdAt(levelTest.getCreatedAt())
+                        .updatedAt(levelTest.getUpdatedAt())
+                        .build())
+                .toList();
     }
 
 }

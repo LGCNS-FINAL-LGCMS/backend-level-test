@@ -11,6 +11,5 @@ public record BaseResponse<T>(
 
     public static <T> BaseResponse<T> onFailure(String status, String message, T data) {
         return new BaseResponse<>(status, message, data);
-
     }
 }
