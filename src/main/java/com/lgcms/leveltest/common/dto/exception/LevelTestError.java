@@ -8,12 +8,13 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum LevelTestError implements ErrorCodeInterface {
 
-    INVALID_REQUEST("LT001", "잘못된 요청입니다.", HttpStatus.BAD_REQUEST),
-    INTERNAL_SERVER_ERROR("LT002", "서버 내부 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
+    INVALID_REQUEST("LETE-01", "잘못된 요청입니다.", HttpStatus.BAD_REQUEST),
+    INTERNAL_SERVER_ERROR("LETE-02", "서버 내부 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
 
-    QUESTION_NOT_FOUND("LT101", "해당 문제를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
-    INVALID_CATEGORY("LT102", "유효하지 않은 카테고리입니다.", HttpStatus.BAD_REQUEST),
-    INVALID_DIFFICULTY("LT103", "유효하지 않은 난이도입니다.", HttpStatus.BAD_REQUEST);
+    QUESTION_NOT_FOUND("LETE-03", "해당 문제를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
+    INVALID_CATEGORY("LETE-04", "유효하지 않은 카테고리입니다.", HttpStatus.BAD_REQUEST),
+    INVALID_DIFFICULTY("LETE-05", "유효하지 않은 난이도입니다.", HttpStatus.BAD_REQUEST);
+
 
     private final String status;
     private final String message;

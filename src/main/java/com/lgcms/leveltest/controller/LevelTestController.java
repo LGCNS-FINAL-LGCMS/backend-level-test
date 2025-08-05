@@ -7,6 +7,7 @@ import com.lgcms.leveltest.service.LevelTestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -17,13 +18,13 @@ public class LevelTestController {
     private final LevelTestService levelTestService;
 
     @PostMapping("")
-    public BaseResponse<LevelTestResponse> createQuestion(@RequestBody LevelTestRequest request) {
+    public BaseResponse<LevelTestResponse> createQuestion(@Valid @RequestBody LevelTestRequest request) {
         return BaseResponse.ok(levelTestService.createQuestion(request));
     }
 
     @PutMapping("/{id}")
     public BaseResponse<LevelTestResponse> updateQuestion(@PathVariable Long id,
-                                                          @RequestBody LevelTestRequest request) {
+                                                          @Valid @RequestBody LevelTestRequest request) {
         return BaseResponse.ok(levelTestService.updateQuestion(id, request));
     }
 
