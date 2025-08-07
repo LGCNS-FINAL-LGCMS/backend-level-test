@@ -19,9 +19,6 @@ public class LevelTestServiceImpl implements LevelTestService {
 
     @Override
     public LevelTestResponse createQuestion(LevelTestRequest request) {
-        if (request.getCategory() == null || request.getDifficulty() == null) {
-            throw new BaseException(LevelTestError.INVALID_REQUEST);
-        }
 
         LevelTest levelTest = LevelTest.builder()
                 .category(request.getCategory())
