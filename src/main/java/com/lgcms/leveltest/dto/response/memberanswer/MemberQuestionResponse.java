@@ -1,19 +1,15 @@
-package com.lgcms.leveltest.dto.response.leveltest;
+package com.lgcms.leveltest.dto.response.memberanswer;
 
 import com.lgcms.leveltest.domain.Category;
 import com.lgcms.leveltest.domain.Difficulty;
 import lombok.Builder;
 import lombok.Getter;
-import java.time.LocalDateTime;
 
 @Getter
 @Builder
-public class LevelTestResponse {
+public class MemberQuestionResponse {
     private Long id;
     private Category category;
     private Difficulty difficulty;
     private String question;
-    private String answer;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }

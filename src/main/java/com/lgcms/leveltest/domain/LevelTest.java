@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -20,11 +19,13 @@ public class LevelTest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private String category;
+    private Category category;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String difficulty;
+    private Difficulty difficulty;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String question;
