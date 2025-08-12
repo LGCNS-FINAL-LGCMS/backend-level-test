@@ -1,5 +1,8 @@
 package com.lgcms.leveltest.domain;
 
+import lombok.Getter;
+
+@Getter
 public enum Category {
     ALGORITHM("Algorithm"),
     DATABASE("Database"),
@@ -16,10 +19,6 @@ public enum Category {
 
     Category(String categoryName) {
         this.categoryName = categoryName;
-    }
-
-    public String getCategoryName() {
-        return categoryName;
     }
 
 }

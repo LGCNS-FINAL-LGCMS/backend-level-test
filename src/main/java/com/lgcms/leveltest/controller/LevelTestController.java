@@ -6,12 +6,11 @@ import com.lgcms.leveltest.dto.response.leveltest.LevelTestResponse;
 import com.lgcms.leveltest.service.LevelTestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/leveltest")
+@RequestMapping("/api/member/leveltest")
 @RequiredArgsConstructor
 public class LevelTestController {
 
@@ -23,19 +22,19 @@ public class LevelTestController {
     }
 
     @PutMapping("/{id}")
-    public BaseResponse<LevelTestResponse> updateQuestion(@PathVariable Long id,
+    public BaseResponse<LevelTestResponse> updateQuestion(@PathVariable @Valid Long id,
                                                           @Valid @RequestBody LevelTestRequest request) {
         return BaseResponse.ok(levelTestService.updateQuestion(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public BaseResponse<String> deleteQuestion(@PathVariable Long id) {
+    public BaseResponse<String> deleteQuestion(@PathVariable @Valid Long id) {
         levelTestService.deleteQuestion(id);
         return BaseResponse.ok("삭제 완료");
     }
 
     @GetMapping("/{id}")
-    public BaseResponse<LevelTestResponse> getQuestion(@PathVariable Long id) {
+    public BaseResponse<LevelTestResponse> getQuestion(@PathVariable @Valid Long id) {
         return BaseResponse.ok(levelTestService.getQuestion(id));
     }
 

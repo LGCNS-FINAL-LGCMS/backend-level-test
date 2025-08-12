@@ -5,6 +5,7 @@ import com.lgcms.leveltest.domain.Difficulty;
 import lombok.Builder;
 import lombok.Getter;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
@@ -14,6 +15,7 @@ public class LevelTestResponse {
     private Difficulty difficulty;
     private String question;
     private String answer;
+    private List<String> mustInclude;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

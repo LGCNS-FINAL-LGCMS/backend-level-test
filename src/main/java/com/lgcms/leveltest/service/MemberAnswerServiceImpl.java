@@ -1,5 +1,6 @@
 package com.lgcms.leveltest.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lgcms.leveltest.common.dto.exception.BaseException;
 import com.lgcms.leveltest.common.dto.exception.LevelTestError;
 import com.lgcms.leveltest.domain.LevelTest;
@@ -12,11 +13,16 @@ import com.lgcms.leveltest.repository.MemberAnswerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.lgcms.leveltest.dto.response.scoring.ScoringResult;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -24,6 +30,8 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
 
     private final MemberAnswerRepository memberAnswerRepository;
     private final LevelTestRepository levelTestRepository;
+    private final GradingService gradingService;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -49,15 +57,35 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
         if (existingAnswer.isPresent()) {
             memberAnswer = existingAnswer.get();
             memberAnswer.setMemberAnswer(request.getAnswer());
+            // 답변이 수정되면 재채점이 필요하므로 채점 상태를 초기화 (필드 형식 맞춤)
+            memberAnswer.setIsScored(false);
+            memberAnswer.setScore(null);
+            memberAnswer.setFeedback(null);
+            memberAnswer.setIsCorrect(null);
+            memberAnswer.setScoredAt(null);
         } else {
             memberAnswer = MemberAnswer.builder()
                     .memberId(memberId)
                     .question(question)
                     .memberAnswer(request.getAnswer())
+                    .isScored(false)
                     .build();
         }
 
         MemberAnswer saved = memberAnswerRepository.save(memberAnswer);
+
+        // 자동 채점 수행 (테스트 용 출력문)
+        gradingService.gradeAnswerAsync(saved)
+                .thenAccept(result -> {
+                    System.out.println("Grading completed for answer ID: " + saved.getId() +
+                            ", Score: " + result.getScore());
+                })
+                .exceptionally(ex -> {
+                    System.err.println("Grading failed for answer ID: " + saved.getId() +
+                            ", Error: " + ex.getMessage());
+                    return null;
+                });
+
         return convertToMemberAnswerResponse(saved);
     }
 
@@ -93,6 +121,27 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
     }
 
     private MemberAnswerResponse convertToMemberAnswerResponse(MemberAnswer memberAnswer) {
+        List<MemberAnswerResponse.ScoringDetail> scoringDetails = null;
+        if (memberAnswer.getScoringDetails() != null && !memberAnswer.getScoringDetails().isEmpty()) {
+            try {
+                TypeReference<List<ScoringResult.ScoringDetail>> typeRef =
+                        new TypeReference<List<ScoringResult.ScoringDetail>>() {};
+                List<ScoringResult.ScoringDetail> details =
+                        objectMapper.readValue(memberAnswer.getScoringDetails(), typeRef);
+
+                scoringDetails = details.stream()
+                        .map(detail -> MemberAnswerResponse.ScoringDetail.builder()
+                                .criterion(detail.getCriterion())
+                                .points(detail.getPoints())
+                                .earnedPoints(detail.getEarnedPoints())
+                                .comment(detail.getComment())
+                                .build())
+                        .toList();
+            } catch (JsonProcessingException e) {
+                log.error("Failed to parse scoring details", e);
+            }
+        }
+
         return MemberAnswerResponse.builder()
                 .id(memberAnswer.getId())
                 .memberId(memberAnswer.getMemberId())
@@ -100,6 +149,14 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
                 .questionContent(memberAnswer.getQuestion().getQuestion())
                 .memberAnswer(memberAnswer.getMemberAnswer())
                 .createdAt(memberAnswer.getCreatedAt())
+                .isScored(memberAnswer.getIsScored())
+                .score(memberAnswer.getScore())
+                .isCorrect(memberAnswer.getIsCorrect())
+                .feedback(memberAnswer.getFeedback())
+                .mustIncludeMatched(memberAnswer.getMustIncludeMatched())
+                .scoredAt(memberAnswer.getScoredAt())
+                .scoringModel(memberAnswer.getScoringModel())
+                .scoringDetails(scoringDetails)
                 .build();
     }
 }

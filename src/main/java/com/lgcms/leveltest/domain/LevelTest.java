@@ -5,6 +5,9 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
+import java.util.List;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "level_test")
@@ -32,6 +35,11 @@ public class LevelTest {
 
     @Column(name = "answer", nullable = false, columnDefinition = "TEXT")
     private String answer;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "must_include", nullable = false, columnDefinition = "jsonb")
+    @Builder.Default
+    private List<String> mustInclude = List.of();
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
