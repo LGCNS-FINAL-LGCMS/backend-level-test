@@ -4,33 +4,39 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-
 import java.time.LocalDateTime;
+import java.util.List;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "level_test")
-@Getter
-@Setter
+@Getter @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class LevelTest {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private String category;
+    private Category category;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String difficulty;
+    private Difficulty difficulty;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String question;
 
     @Column(name = "answer", nullable = false, columnDefinition = "TEXT")
     private String answer;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "must_include", nullable = false, columnDefinition = "jsonb")
+    private List<String> mustInclude;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

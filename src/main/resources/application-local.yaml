@@ -1,14 +1,24 @@
+server:
+  port: 38108
+
+logging:
+  level:
+    com.lgcms.leveltest.service: DEBUG
+    org.springframework.ai: DEBUG
+
 spring:
   config:
     activate:
       on-profile: local
 
-  autoconfigure:
-    exclude:
-      - org.springframework.ai.vectorstore.pgvector.autoconfigure.PgVectorStoreAutoConfiguration
-      - org.springframework.ai.model.bedrock.cohere.autoconfigure.BedrockCohereEmbeddingAutoConfiguration
-      - org.springframework.ai.model.bedrock.titan.autoconfigure.BedrockTitanEmbeddingAutoConfiguration
-      - org.springframework.ai.model.bedrock.anthropic.autoconfigure.BedrockAnthropicChatAutoConfiguration
+  ai:
+    model:
+      chat: bedrock-converse
+    bedrock:
+      aws:
+        region: ap-northeast-2
+        access-key: ${AWS_ACCESS_KEY_ID}
+        secret-key: ${AWS_SECRET_ACCESS_KEY}
 
   datasource:
     url: jdbc:postgresql://localhost:38121/leveltest
@@ -23,21 +33,3 @@ spring:
 
   kafka:
     bootstrap-servers: localhost:38123
-
-#  ai:
-#    bedrock:
-#      aws:
-#        access-key: ${AWS_ACCESS_KEY_ID}
-#        secret-key: ${AWS_SECRET_ACCESS_KEY}
-#        region: ${AWS_REGION}
-#      anthropic:
-#        claude:
-#          model: anthropic.claude-3-haiku-20240307-v1:0
-#          options:
-#            max-tokens: 500
-#      titan:
-#        embedding:
-#          model: amazon.titan-embed-text-v2:0
-#          options:
-#            inputType: "text"
-#            normalize: true

@@ -25,6 +25,7 @@ public class LevelTestServiceImpl implements LevelTestService {
                 .difficulty(request.getDifficulty())
                 .question(request.getQuestion())
                 .answer(request.getAnswer())
+                .mustInclude(request.getMustInclude())
                 .build();
 
         LevelTest saved = levelTestRepository.save(levelTest);
@@ -35,6 +36,7 @@ public class LevelTestServiceImpl implements LevelTestService {
                 .difficulty(saved.getDifficulty())
                 .question(saved.getQuestion())
                 .answer(saved.getAnswer())
+                .mustInclude(saved.getMustInclude())
                 .createdAt(saved.getCreatedAt())
                 .updatedAt(saved.getUpdatedAt())
                 .build();
@@ -45,12 +47,17 @@ public class LevelTestServiceImpl implements LevelTestService {
         LevelTest levelTest = levelTestRepository.findById(id)
                 .orElseThrow(() -> new BaseException(LevelTestError.QUESTION_NOT_FOUND));
 
-        levelTest.setCategory(request.getCategory());
-        levelTest.setDifficulty(request.getDifficulty());
-        levelTest.setQuestion(request.getQuestion());
-        levelTest.setAnswer(request.getAnswer());
+        LevelTest updated = LevelTest.builder()
+                .id(levelTest.getId())
+                .category(request.getCategory())
+                .difficulty(request.getDifficulty())
+                .question(request.getQuestion())
+                .answer(request.getAnswer())
+                .mustInclude(request.getMustInclude())
+                .createdAt(levelTest.getCreatedAt())
+                .build();
 
-        LevelTest updated = levelTestRepository.save(levelTest);
+        LevelTest saved = levelTestRepository.save(updated);
 
         return LevelTestResponse.builder()
                 .id(updated.getId())
@@ -58,8 +65,9 @@ public class LevelTestServiceImpl implements LevelTestService {
                 .difficulty(updated.getDifficulty())
                 .question(updated.getQuestion())
                 .answer(updated.getAnswer())
+                .mustInclude(updated.getMustInclude())
                 .createdAt(updated.getCreatedAt())
-                .updatedAt(updated.getUpdatedAt())
+                .updatedAt(saved.getUpdatedAt())
                 .build();
     }
 
@@ -82,6 +90,7 @@ public class LevelTestServiceImpl implements LevelTestService {
                 .difficulty(levelTest.getDifficulty())
                 .question(levelTest.getQuestion())
                 .answer(levelTest.getAnswer())
+                .mustInclude(levelTest.getMustInclude())
                 .createdAt(levelTest.getCreatedAt())
                 .updatedAt(levelTest.getUpdatedAt())
                 .build();
@@ -97,6 +106,7 @@ public class LevelTestServiceImpl implements LevelTestService {
                         .difficulty(levelTest.getDifficulty())
                         .question(levelTest.getQuestion())
                         .answer(levelTest.getAnswer())
+                        .mustInclude(levelTest.getMustInclude())
                         .createdAt(levelTest.getCreatedAt())
                         .updatedAt(levelTest.getUpdatedAt())
                         .build())
