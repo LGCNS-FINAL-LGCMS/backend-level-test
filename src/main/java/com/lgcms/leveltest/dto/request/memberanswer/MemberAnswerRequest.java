@@ -2,11 +2,9 @@ package com.lgcms.leveltest.dto.request.memberanswer;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Getter
-@Setter
+@Data
 public class MemberAnswerRequest {
 
     @NotNull(message = "문제 ID는 필수 입력 값입니다.")

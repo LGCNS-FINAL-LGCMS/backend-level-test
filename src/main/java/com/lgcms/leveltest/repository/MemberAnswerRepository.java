@@ -29,15 +29,19 @@ public interface MemberAnswerRepository extends JpaRepository<MemberAnswer, Long
     @Query("SELECT AVG(ma.score) FROM MemberAnswer ma WHERE ma.memberId = :memberId AND ma.isScored = true")
     Double getAverageScoreByMemberId(@Param("memberId") Long memberId);
 
-    @Query("SELECT lt.category, AVG(ma.score) " +
-            "FROM MemberAnswer ma " +
-            "JOIN ma.question lt " +
-            "WHERE ma.memberId = :memberId AND ma.isScored = true " +
-            "GROUP BY lt.category")
+    @Query(""" 
+            SELECT lt.category, AVG(ma.score)
+            FROM MemberAnswer ma
+            JOIN ma.question lt
+            WHERE ma.memberId = :memberId AND ma.isScored = true
+            GROUP BY lt.category
+            """)
     List<Object[]> getAverageScoreByCategory(@Param("memberId") Long memberId);
 
-    @Query("SELECT COUNT(CASE WHEN ma.isCorrect = true THEN 1 END) * 100.0 / COUNT(*) " +
-            "FROM MemberAnswer ma " +
-            "WHERE ma.memberId = :memberId AND ma.isScored = true")
+    @Query("""
+            SELECT COUNT(CASE WHEN ma.isCorrect = true THEN 1 END) * 100.0 / COUNT(*)
+            FROM MemberAnswer ma
+            WHERE ma.memberId = :memberId AND ma.isScored = true
+            """)
     Double getCorrectRateByMemberId(@Param("memberId") Long memberId);
 }

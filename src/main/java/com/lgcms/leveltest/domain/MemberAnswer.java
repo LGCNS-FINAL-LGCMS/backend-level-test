@@ -13,11 +13,9 @@ import java.time.LocalDateTime;
                 @Index(name = "idx_member_answer_question_id", columnList = "question_id"),
                 @Index(name = "idx_member_answer_scored", columnList = "is_scored")
         })
-@Getter
-@Setter
+@Getter @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class MemberAnswer {
 
     @Id
@@ -43,8 +41,8 @@ public class MemberAnswer {
     @Column(name = "is_correct")
     private Boolean isCorrect;
 
-    @Column(name = "is_scored")
     @Builder.Default
+    @Column(name = "is_scored")
     private Boolean isScored = false;
 
     @Column(name = "scoring_details", columnDefinition = "TEXT")

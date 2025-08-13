@@ -11,11 +11,9 @@ import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "level_test")
-@Getter
-@Setter
+@Getter @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class LevelTest {
 
     @Id
@@ -38,8 +36,7 @@ public class LevelTest {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "must_include", nullable = false, columnDefinition = "jsonb")
-    @Builder.Default
-    private List<String> mustInclude = List.of();
+    private List<String> mustInclude;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

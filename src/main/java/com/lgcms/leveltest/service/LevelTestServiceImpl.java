@@ -47,13 +47,17 @@ public class LevelTestServiceImpl implements LevelTestService {
         LevelTest levelTest = levelTestRepository.findById(id)
                 .orElseThrow(() -> new BaseException(LevelTestError.QUESTION_NOT_FOUND));
 
-        levelTest.setCategory(request.getCategory());
-        levelTest.setDifficulty(request.getDifficulty());
-        levelTest.setQuestion(request.getQuestion());
-        levelTest.setAnswer(request.getAnswer());
-        levelTest.setMustInclude(request.getMustInclude());
+        LevelTest updated = LevelTest.builder()
+                .id(levelTest.getId())
+                .category(request.getCategory())
+                .difficulty(request.getDifficulty())
+                .question(request.getQuestion())
+                .answer(request.getAnswer())
+                .mustInclude(request.getMustInclude())
+                .createdAt(levelTest.getCreatedAt())
+                .build();
 
-        LevelTest updated = levelTestRepository.save(levelTest);
+        LevelTest saved = levelTestRepository.save(updated);
 
         return LevelTestResponse.builder()
                 .id(updated.getId())
@@ -63,7 +67,7 @@ public class LevelTestServiceImpl implements LevelTestService {
                 .answer(updated.getAnswer())
                 .mustInclude(updated.getMustInclude())
                 .createdAt(updated.getCreatedAt())
-                .updatedAt(updated.getUpdatedAt())
+                .updatedAt(saved.getUpdatedAt())
                 .build();
     }
 

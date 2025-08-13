@@ -1,15 +1,16 @@
 package com.lgcms.leveltest.dto.request.leveltest;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lgcms.leveltest.domain.Category;
 import com.lgcms.leveltest.domain.Difficulty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+
+import java.util.ArrayList;
 import java.util.List;
 
-@Getter
-@Setter
+@Data
 public class LevelTestRequest {
 
     @NotNull(message = "카테고리는 필수 입력 값입니다.")
@@ -25,5 +26,6 @@ public class LevelTestRequest {
     private String answer;
 
     @NotNull(message = "필수 포함 키워드는 필수 입력 값입니다.")
-    private List<String> mustInclude;
+    @JsonProperty("must_include")
+    private List<String> mustInclude = new ArrayList<>();
 }

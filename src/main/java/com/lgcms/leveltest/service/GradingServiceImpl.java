@@ -1,6 +1,5 @@
 package com.lgcms.leveltest.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lgcms.leveltest.common.dto.exception.BaseException;
 import com.lgcms.leveltest.common.dto.exception.LevelTestError;
@@ -29,6 +28,7 @@ public class GradingServiceImpl implements GradingService {
     private final ChatClient.Builder chatClientBuilder;
     private final MemberAnswerRepository memberAnswerRepository;
     private final ObjectMapper objectMapper;
+    private final MemberAnswerUpdateService memberAnswerUpdateService;
 
     @Override
     @Transactional
@@ -66,8 +66,7 @@ public class GradingServiceImpl implements GradingService {
             log.debug("Received response from Claude: {}", responseContent);
             ScoringResult result = parseGradingResponse(responseContent);
 
-            // 채점 결과 저장
-            updateMemberAnswer(memberAnswer, result);
+            memberAnswerUpdateService.updateWithScoringResult(memberAnswer, result);
 
             log.info("Grading completed for answer ID: {}. Score: {}",
                     memberAnswer.getId(), result.getScore());
@@ -78,35 +77,6 @@ public class GradingServiceImpl implements GradingService {
             log.error("Error during grading for answer ID: {}", memberAnswer.getId(), e);
             throw new BaseException(LevelTestError.GRADING_FAILED);
         }
-    }
-
-    private void updateMemberAnswer(MemberAnswer memberAnswer, ScoringResult result) {
-        memberAnswer.setScore(result.getScore());
-        memberAnswer.setIsCorrect(result.getIsCorrect());
-        memberAnswer.setFeedback(result.getFeedback());
-        memberAnswer.setIsScored(true);
-        memberAnswer.setScoredAt(LocalDateTime.now());
-        memberAnswer.setScoringModel("anthropic.claude-3-haiku-20240307-v1:0"); // 하드코딩
-
-        if (result.getMustIncludeMatched() != null) {
-            memberAnswer.setMustIncludeMatched(
-                    String.join(",", result.getMustIncludeMatched())
-            );
-        }
-
-        // 채점 상세 정보를 JSON으로 저장
-        try {
-            if (result.getScoringDetails() != null) {
-                String detailsJson = objectMapper.writeValueAsString(result.getScoringDetails());
-                memberAnswer.setScoringDetails(detailsJson);
-            }
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize scoring details", e);
-        }
-
-        memberAnswerRepository.save(memberAnswer);
-        result.setScoredAt(memberAnswer.getScoredAt());
-        result.setModelUsed("anthropic.claude-3-haiku-20240307-v1:0");
     }
 
     @Override
@@ -123,12 +93,25 @@ public class GradingServiceImpl implements GradingService {
 
         log.info("Regrading answer ID: {}", answerId);
 
-        memberAnswer.setIsScored(false);
-        memberAnswer.setScore(null);
-        memberAnswer.setFeedback(null);
-        memberAnswerRepository.save(memberAnswer);
+        MemberAnswer resetAnswer = MemberAnswer.builder()
+                .id(memberAnswer.getId())
+                .memberId(memberAnswer.getMemberId())
+                .question(memberAnswer.getQuestion())
+                .memberAnswer(memberAnswer.getMemberAnswer())
+                .score(null)
+                .feedback(null)
+                .isCorrect(memberAnswer.getIsCorrect())
+                .isScored(false)
+                .scoringDetails(memberAnswer.getScoringDetails())
+                .mustIncludeMatched(memberAnswer.getMustIncludeMatched())
+                .scoredAt(memberAnswer.getScoredAt())
+                .scoringModel(memberAnswer.getScoringModel())
+                .createdAt(memberAnswer.getCreatedAt())
+                .build();
 
-        return gradeAnswer(memberAnswer);
+        memberAnswerRepository.save(resetAnswer);
+
+        return gradeAnswer(resetAnswer);
     }
 
     @Override

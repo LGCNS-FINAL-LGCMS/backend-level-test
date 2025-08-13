@@ -18,6 +18,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.lgcms.leveltest.dto.response.scoring.ScoringResult;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -55,14 +56,22 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
 
         MemberAnswer memberAnswer;
         if (existingAnswer.isPresent()) {
-            memberAnswer = existingAnswer.get();
-            memberAnswer.setMemberAnswer(request.getAnswer());
-            // 답변이 수정되면 재채점이 필요하므로 채점 상태를 초기화 (필드 형식 맞춤)
-            memberAnswer.setIsScored(false);
-            memberAnswer.setScore(null);
-            memberAnswer.setFeedback(null);
-            memberAnswer.setIsCorrect(null);
-            memberAnswer.setScoredAt(null);
+            MemberAnswer existing = existingAnswer.get();
+            memberAnswer = MemberAnswer.builder()
+                    .id(existing.getId())
+                    .memberId(existing.getMemberId())
+                    .question(existing.getQuestion())
+                    .memberAnswer(request.getAnswer())
+                    .score(null)
+                    .feedback(null)
+                    .isCorrect(null)
+                    .isScored(false)
+                    .scoringDetails(existing.getScoringDetails())
+                    .mustIncludeMatched(existing.getMustIncludeMatched())
+                    .scoredAt(null)
+                    .scoringModel(existing.getScoringModel())
+                    .createdAt(existing.getCreatedAt())
+                    .build();
         } else {
             memberAnswer = MemberAnswer.builder()
                     .memberId(memberId)
@@ -121,27 +130,36 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
     }
 
     private MemberAnswerResponse convertToMemberAnswerResponse(MemberAnswer memberAnswer) {
-        List<MemberAnswerResponse.ScoringDetail> scoringDetails = null;
-        if (memberAnswer.getScoringDetails() != null && !memberAnswer.getScoringDetails().isEmpty()) {
-            try {
-                TypeReference<List<ScoringResult.ScoringDetail>> typeRef =
-                        new TypeReference<List<ScoringResult.ScoringDetail>>() {};
-                List<ScoringResult.ScoringDetail> details =
-                        objectMapper.readValue(memberAnswer.getScoringDetails(), typeRef);
-
-                scoringDetails = details.stream()
-                        .map(detail -> MemberAnswerResponse.ScoringDetail.builder()
-                                .criterion(detail.getCriterion())
-                                .points(detail.getPoints())
-                                .earnedPoints(detail.getEarnedPoints())
-                                .comment(detail.getComment())
-                                .build())
-                        .toList();
-            } catch (JsonProcessingException e) {
-                log.error("Failed to parse scoring details", e);
-            }
+        if (memberAnswer.getScoringDetails() == null || memberAnswer.getScoringDetails().isEmpty()) {
+            return buildMemberAnswerResponse(memberAnswer, null);
         }
 
+        List<MemberAnswerResponse.ScoringDetail> scoringDetails = null;
+        try {
+            TypeReference<List<ScoringResult.ScoringDetail>> typeRef =
+                    new TypeReference<List<ScoringResult.ScoringDetail>>() {};
+            List<ScoringResult.ScoringDetail> details =
+                    objectMapper.readValue(memberAnswer.getScoringDetails(), typeRef);
+
+            scoringDetails = details.stream()
+                    .map(detail -> MemberAnswerResponse.ScoringDetail.builder()
+                            .criterion(detail.getCriterion())
+                            .points(detail.getPoints())
+                            .earnedPoints(detail.getEarnedPoints())
+                            .comment(detail.getComment())
+                            .build())
+                    .toList();
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse scoring details", e);
+            return buildMemberAnswerResponse(memberAnswer, null);
+        }
+
+        return buildMemberAnswerResponse(memberAnswer, scoringDetails);
+    }
+
+    // 공통 응답 생성 메서드
+    private MemberAnswerResponse buildMemberAnswerResponse(MemberAnswer memberAnswer,
+                                                           List<MemberAnswerResponse.ScoringDetail> scoringDetails) {
         return MemberAnswerResponse.builder()
                 .id(memberAnswer.getId())
                 .memberId(memberAnswer.getMemberId())
