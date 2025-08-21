@@ -8,11 +8,5 @@ import java.util.concurrent.CompletableFuture;
 public interface GradingService {
 
     ScoringResult gradeAnswer(MemberAnswer memberAnswer);
-
-    CompletableFuture<ScoringResult> gradeAnswerAsync(MemberAnswer memberAnswer);
-
-    // 답변 ID로 재채점
-    ScoringResult regradeAnswer(Long answerId);
-
-    int gradeAllUnscoredAnswers(Long memberId);
+    String generateComprehensiveFeedback(Long memberId);
 }

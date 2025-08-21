@@ -5,9 +5,9 @@ import com.lgcms.leveltest.common.dto.exception.BaseException;
 import com.lgcms.leveltest.common.dto.exception.LevelTestError;
 import com.lgcms.leveltest.domain.LevelTest;
 import com.lgcms.leveltest.domain.MemberAnswer;
-import com.lgcms.leveltest.dto.request.memberanswer.MemberAnswerRequest;
-import com.lgcms.leveltest.dto.response.memberanswer.MemberAnswerResponse;
-import com.lgcms.leveltest.dto.response.memberanswer.MemberQuestionResponse;
+import com.lgcms.leveltest.dto.request.memberanswer.*;
+import com.lgcms.leveltest.dto.response.memberanswer.*;
+import com.lgcms.leveltest.dto.response.scoring.ScoringDetail;
 import com.lgcms.leveltest.repository.LevelTestRepository;
 import com.lgcms.leveltest.repository.MemberAnswerRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,9 +18,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.lgcms.leveltest.dto.response.scoring.ScoringResult;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -33,70 +32,11 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
     private final LevelTestRepository levelTestRepository;
     private final GradingService gradingService;
     private final ObjectMapper objectMapper;
+    private static AtomicLong lastGradingTime = new AtomicLong(0);
+    private final SequentialGradingService sequentialGradingService;
+    private final QuestionRequestLogService questionRequestLogService;
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<MemberQuestionResponse> getUnansweredQuestions(Long memberId) {
-        List<LevelTest> allQuestions = levelTestRepository.findAll();
-        List<Long> answeredQuestionIds = memberAnswerRepository.findAnsweredQuestionIdsByMemberId(memberId);
 
-        return allQuestions.stream()
-                .filter(q -> !answeredQuestionIds.contains(q.getId()))
-                .map(this::convertToMemberQuestionResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public MemberAnswerResponse saveAnswer(Long memberId, MemberAnswerRequest request) {
-        LevelTest question = levelTestRepository.findById(request.getQuestionId())
-                .orElseThrow(() -> new BaseException(LevelTestError.QUESTION_NOT_FOUND));
-
-        Optional<MemberAnswer> existingAnswer = memberAnswerRepository
-                .findByMemberIdAndQuestionId(memberId, request.getQuestionId());
-
-        MemberAnswer memberAnswer;
-        if (existingAnswer.isPresent()) {
-            MemberAnswer existing = existingAnswer.get();
-            memberAnswer = MemberAnswer.builder()
-                    .id(existing.getId())
-                    .memberId(existing.getMemberId())
-                    .question(existing.getQuestion())
-                    .memberAnswer(request.getAnswer())
-                    .score(null)
-                    .feedback(null)
-                    .isCorrect(null)
-                    .isScored(false)
-                    .scoringDetails(existing.getScoringDetails())
-                    .mustIncludeMatched(existing.getMustIncludeMatched())
-                    .scoredAt(null)
-                    .scoringModel(existing.getScoringModel())
-                    .createdAt(existing.getCreatedAt())
-                    .build();
-        } else {
-            memberAnswer = MemberAnswer.builder()
-                    .memberId(memberId)
-                    .question(question)
-                    .memberAnswer(request.getAnswer())
-                    .isScored(false)
-                    .build();
-        }
-
-        MemberAnswer saved = memberAnswerRepository.save(memberAnswer);
-
-        // 자동 채점 수행 (테스트 용 출력문)
-        gradingService.gradeAnswerAsync(saved)
-                .thenAccept(result -> {
-                    System.out.println("Grading completed for answer ID: " + saved.getId() +
-                            ", Score: " + result.getScore());
-                })
-                .exceptionally(ex -> {
-                    System.err.println("Grading failed for answer ID: " + saved.getId() +
-                            ", Error: " + ex.getMessage());
-                    return null;
-                });
-
-        return convertToMemberAnswerResponse(saved);
-    }
 
     @Override
     @Transactional(readOnly = true)
@@ -105,19 +45,6 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
         return answers.stream()
                 .map(this::convertToMemberAnswerResponse)
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public MemberAnswerResponse getMemberAnswer(Long memberId, Long answerId) {
-        MemberAnswer memberAnswer = memberAnswerRepository.findById(answerId)
-                .orElseThrow(() -> new BaseException(LevelTestError.ANSWER_NOT_FOUND));
-
-        if (!memberAnswer.getMemberId().equals(memberId)) {
-            throw new BaseException(LevelTestError.UNAUTHORIZED_ACCESS);
-        }
-
-        return convertToMemberAnswerResponse(memberAnswer);
     }
 
     private MemberQuestionResponse convertToMemberQuestionResponse(LevelTest levelTest) {
@@ -134,21 +61,10 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
             return buildMemberAnswerResponse(memberAnswer, null);
         }
 
-        List<MemberAnswerResponse.ScoringDetail> scoringDetails = null;
+        List<ScoringDetail> scoringDetails = null;
         try {
-            TypeReference<List<ScoringResult.ScoringDetail>> typeRef =
-                    new TypeReference<List<ScoringResult.ScoringDetail>>() {};
-            List<ScoringResult.ScoringDetail> details =
-                    objectMapper.readValue(memberAnswer.getScoringDetails(), typeRef);
-
-            scoringDetails = details.stream()
-                    .map(detail -> MemberAnswerResponse.ScoringDetail.builder()
-                            .criterion(detail.getCriterion())
-                            .points(detail.getPoints())
-                            .earnedPoints(detail.getEarnedPoints())
-                            .comment(detail.getComment())
-                            .build())
-                    .toList();
+            TypeReference<List<ScoringDetail>> typeRef = new TypeReference<List<ScoringDetail>>() {};
+            scoringDetails = objectMapper.readValue(memberAnswer.getScoringDetails(), typeRef);
         } catch (JsonProcessingException e) {
             log.error("Failed to parse scoring details", e);
             return buildMemberAnswerResponse(memberAnswer, null);
@@ -159,7 +75,7 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
 
     // 공통 응답 생성 메서드
     private MemberAnswerResponse buildMemberAnswerResponse(MemberAnswer memberAnswer,
-                                                           List<MemberAnswerResponse.ScoringDetail> scoringDetails) {
+                                                           List<ScoringDetail> scoringDetails) {
         return MemberAnswerResponse.builder()
                 .id(memberAnswer.getId())
                 .memberId(memberAnswer.getMemberId())
@@ -169,12 +85,82 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
                 .createdAt(memberAnswer.getCreatedAt())
                 .isScored(memberAnswer.getIsScored())
                 .score(memberAnswer.getScore())
-                .isCorrect(memberAnswer.getIsCorrect())
                 .feedback(memberAnswer.getFeedback())
                 .mustIncludeMatched(memberAnswer.getMustIncludeMatched())
                 .scoredAt(memberAnswer.getScoredAt())
                 .scoringModel(memberAnswer.getScoringModel())
                 .scoringDetails(scoringDetails)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public SubmissionResponse submitAllAnswers(Long memberId, MemberAnswerRequest request) {
+        log.info("회원 {}의 답변 일괄 제출 시작. 문제 수: {}", memberId, request.getAnswers().size());
+
+        List<Long> submittedQuestionIds = request.getAnswers().stream()
+                .map(MemberAnswerRequest.AnswerItem::getQuestionId)
+                .toList();
+
+        boolean isAuthorized = questionRequestLogService.validateQuestionAccess(memberId, submittedQuestionIds);
+        if (!isAuthorized) {
+            throw new BaseException(LevelTestError.UNAUTHORIZED_QUESTION_ACCESS);
+        }
+
+        log.info("회원 {}의 문제 접근 권한 검증 통과", memberId);
+
+        List<MemberAnswer> savedAnswers = new ArrayList<>();
+
+        // 모든 답변 저장 (채점 상태는 false)
+        for (MemberAnswerRequest.AnswerItem answerItem : request.getAnswers()) {
+            LevelTest question = levelTestRepository.findById(answerItem.getQuestionId())
+                    .orElseThrow(() -> new BaseException(LevelTestError.QUESTION_NOT_FOUND));
+
+            MemberAnswer memberAnswer = MemberAnswer.builder()
+                    .memberId(memberId)
+                    .question(question)
+                    .memberAnswer(answerItem.getAnswer())
+                    .isScored(false)
+                    .build();
+
+            MemberAnswer saved = memberAnswerRepository.save(memberAnswer);
+            savedAnswers.add(saved);
+        }
+
+        // 비동기로 순차 채점 시작
+        sequentialGradingService.gradeAllAnswersSequentially(memberId, savedAnswers);
+
+        return SubmissionResponse.builder()
+                .message("모든 답변이 제출되었습니다. 채점이 진행 중입니다.")
+                .status("GRADING_IN_PROGRESS")
+                .estimatedTime("약 " + (request.getAnswers().size() * 3 / 60 + 1) + "분 소요 예정")
+                .totalQuestions(request.getAnswers().size())
+                .build();
+    }
+
+    // 채점 진행 상황 조회 메서드 추가
+    @Override
+    @Transactional(readOnly = true)
+    public GradingProgressResponse getGradingProgress(Long memberId) {
+        long totalQuestions = memberAnswerRepository.countByMemberId(memberId);
+        long completedGrading = memberAnswerRepository.countScoredAnswersByMemberId(memberId);
+
+        double progressPercentage = totalQuestions > 0 ?
+                (completedGrading * 100.0) / totalQuestions : 0.0;
+
+        String status = (totalQuestions > 0 && completedGrading == totalQuestions) ?
+                "COMPLETED" : "IN_PROGRESS";
+
+        String message = status.equals("COMPLETED") ?
+                "모든 문제의 채점이 완료되었습니다" :
+                String.format("채점 진행 중 (%d/%d)", completedGrading, totalQuestions);
+
+        return GradingProgressResponse.builder()
+                .totalQuestions(totalQuestions)
+                .completedGrading(completedGrading)
+                .progressPercentage(progressPercentage)
+                .status(status)
+                .message(message)
                 .build();
     }
 }

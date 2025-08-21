@@ -11,14 +11,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.ChatOptions;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -79,66 +77,6 @@ public class GradingServiceImpl implements GradingService {
         }
     }
 
-    @Override
-    @Async("gradingExecutor")
-    public CompletableFuture<ScoringResult> gradeAnswerAsync(MemberAnswer memberAnswer) {
-        return CompletableFuture.supplyAsync(() -> gradeAnswer(memberAnswer));
-    }
-
-    @Override
-    @Transactional
-    public ScoringResult regradeAnswer(Long answerId) {
-        MemberAnswer memberAnswer = memberAnswerRepository.findById(answerId)
-                .orElseThrow(() -> new BaseException(LevelTestError.ANSWER_NOT_FOUND));
-
-        log.info("Regrading answer ID: {}", answerId);
-
-        MemberAnswer resetAnswer = MemberAnswer.builder()
-                .id(memberAnswer.getId())
-                .memberId(memberAnswer.getMemberId())
-                .question(memberAnswer.getQuestion())
-                .memberAnswer(memberAnswer.getMemberAnswer())
-                .score(null)
-                .feedback(null)
-                .isCorrect(memberAnswer.getIsCorrect())
-                .isScored(false)
-                .scoringDetails(memberAnswer.getScoringDetails())
-                .mustIncludeMatched(memberAnswer.getMustIncludeMatched())
-                .scoredAt(memberAnswer.getScoredAt())
-                .scoringModel(memberAnswer.getScoringModel())
-                .createdAt(memberAnswer.getCreatedAt())
-                .build();
-
-        memberAnswerRepository.save(resetAnswer);
-
-        return gradeAnswer(resetAnswer);
-    }
-
-    @Override
-    @Transactional
-    public int gradeAllUnscoredAnswers(Long memberId) {
-        List<MemberAnswer> unscoredAnswers = memberAnswerRepository
-                .findByMemberIdAndIsScored(memberId, false);
-
-        log.info("Found {} unscored answers for member ID: {}",
-                unscoredAnswers.size(), memberId);
-
-        int gradedCount = 0;
-        for (MemberAnswer answer : unscoredAnswers) {
-            try {
-                gradeAnswer(answer);
-                gradedCount++;
-            } catch (Exception e) {
-                log.error("Failed to grade answer ID: {}", answer.getId(), e);
-            }
-        }
-
-        log.info("Graded {} out of {} answers for member ID: {}",
-                gradedCount, unscoredAnswers.size(), memberId);
-
-        return gradedCount;
-    }
-
     private ScoringResult parseGradingResponse(String jsonResponse) {
         try {
             log.info("=== CLAUDE RAW RESPONSE ===");
@@ -159,12 +97,10 @@ public class GradingServiceImpl implements GradingService {
 
             log.info("=== PARSED RESULT ===");
             log.info("Score: {}", result.getScore());
-            log.info("IsCorrect: {}", result.getIsCorrect());
             log.info("Feedback: {}", result.getFeedback());
             log.info("Strengths: {}", result.getStrengths());
             log.info("Improvements: {}", result.getImprovements());
             log.info("MustIncludeMatched: {}", result.getMustIncludeMatched());
-            log.info("WrongKeywordsFound: {}", result.getWrongKeywordsFound());
             log.info("=== PARSED RESULT END ===");
 
             return result;
@@ -175,17 +111,73 @@ public class GradingServiceImpl implements GradingService {
 
             return ScoringResult.builder()
                     .score(75)
-                    .isCorrect(true)
                     .feedback("AI 채점 응답 파싱에 실패했습니다. 답변 내용: " +
                             (jsonResponse.length() > 100 ?
                                     jsonResponse.substring(0, 100) + "..." : jsonResponse))
                     .strengths("시스템 오류로 자동 분석 불가")
                     .improvements("수동 검토가 필요합니다")
                     .mustIncludeMatched(new ArrayList<>())
-                    .wrongKeywordsFound(new ArrayList<>())
                     .scoringDetails(new ArrayList<>())
                     .modelUsed("anthropic.claude-3-haiku-20240307-v1:0")
                     .scoredAt(LocalDateTime.now())
+                    .build();
+        }
+    }
+
+    @Override
+    public String generateComprehensiveFeedback(Long memberId) {
+        List<MemberAnswer> allAnswers = memberAnswerRepository.findByMemberIdAndIsScored(memberId, true);
+
+        if (allAnswers.size() < 10) {
+            return "아직 모든 문제의 채점이 완료되지 않았습니다. (" + allAnswers.size() + "/10)";
+        }
+
+        try {
+            ChatOptions chatOptions = ChatOptions.builder()
+                    .model("anthropic.claude-3-haiku-20240307-v1:0")
+                    .maxTokens(1500)
+                    .temperature(0.3)
+                    .build();
+
+            ChatClient chatClient = chatClientBuilder
+                    .defaultOptions(chatOptions)
+                    .build();
+
+            GradingPrompt gradingPrompt = GradingPrompt.builder()
+                    .question(null) // 사용하지 않음
+                    .memberAnswer(null) // 사용하지 않음
+                    .build();
+
+            String promptText = gradingPrompt.buildComprehensiveFeedbackPrompt(allAnswers);
+
+            return chatClient.prompt()
+                    .user(promptText)
+                    .call()
+                    .content();
+
+        } catch (Exception e) {
+            log.error("Error generating comprehensive feedback for member: {}", memberId, e);
+            return "종합 피드백 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+        }
+    }
+
+    private ScoringResult parseSimpleGradingResponse(String jsonResponse) {
+        try {
+            String cleanedJson = jsonResponse
+                    .replaceAll("```json\\s*", "")
+                    .replaceAll("```\\s*$", "")
+                    .replaceAll("```", "")
+                    .trim();
+
+            ScoringResult result = objectMapper.readValue(cleanedJson, ScoringResult.class);
+            return result;
+
+        } catch (Exception e) {
+            log.error("Failed to parse simple grading response: {}", jsonResponse, e);
+
+            return ScoringResult.builder()
+                    .score(70)
+                    .mustIncludeMatched(new ArrayList<>())
                     .build();
         }
     }

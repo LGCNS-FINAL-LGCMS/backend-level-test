@@ -7,15 +7,18 @@ import com.lgcms.leveltest.domain.LevelTest;
 import com.lgcms.leveltest.dto.request.leveltest.LevelTestRequest;
 import com.lgcms.leveltest.dto.response.leveltest.LevelTestResponse;
 import com.lgcms.leveltest.repository.LevelTestRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.lgcms.leveltest.repository.CategoryRedisRepository;
 import com.lgcms.leveltest.dto.response.memberanswer.MemberQuestionResponse;
-import com.lgcms.leveltest.domain.MemberCategory;
+import com.lgcms.leveltest.domain.CategoryItem;
 import com.lgcms.leveltest.domain.Difficulty;
 import java.util.Collections;
 import java.util.ArrayList;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,6 +31,7 @@ public class LevelTestServiceImpl implements LevelTestService {
     private final LevelTestRepository levelTestRepository;
     private final CategoryRedisRepository categoryRedisRepository;
     private final CategoryMappingService categoryMappingService;
+    private final QuestionRequestLogService questionRequestLogService;
 
     @Override
     public LevelTestResponse createQuestion(LevelTestRequest request) {
@@ -130,7 +134,7 @@ public class LevelTestServiceImpl implements LevelTestService {
         log.info("카테고리 ID 목록으로 문제 생성: {}", categoryId);
 
         // Redis에서 카테고리 정보 조회
-        List<MemberCategory> memberCategories = categoryRedisRepository.getCategoriesById(List.of(categoryId));
+        List<CategoryItem> memberCategories = categoryRedisRepository.getCategoriesById(List.of(categoryId));
         log.info("레디스에서 조회된 카테고리: {}", memberCategories);
 
         // DB 카테고리로 매핑
@@ -145,7 +149,12 @@ public class LevelTestServiceImpl implements LevelTestService {
         Category category = dbCategories.get(0);
         List<LevelTest> selectedQuestions = getQuestionsForCategory(category, 10);
 
+        List<Long> questionIds = selectedQuestions.stream().map(LevelTest::getId).toList();
+        Long memberId = getCurrentMemberId(); // 헤더에서 회원 ID 추출 (아래 메서드 추가 필요)
+        questionRequestLogService.logQuestionRequest(memberId, questionIds);
+
         log.info("최종 선택된 문제 개수: {}", selectedQuestions.size());
+        log.info("회원 {}가 요청한 문제 IDs: {}", memberId, questionIds);
 
         return selectedQuestions.stream()
                 .map(this::convertToMemberQuestionResponse)
@@ -188,6 +197,24 @@ public class LevelTestServiceImpl implements LevelTestService {
                 .difficulty(levelTest.getDifficulty())
                 .question(levelTest.getQuestion())
                 .build();
+    }
+
+    private Long getCurrentMemberId() {
+        try {
+            HttpServletRequest request =
+                    ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes())
+                            .getRequest();
+
+            String userIdHeader = request.getHeader("X-USER-ID");
+            if (userIdHeader == null || userIdHeader.trim().isEmpty()) {
+                throw new BaseException(LevelTestError.UNAUTHORIZED_ACCESS);
+            }
+
+            return Long.valueOf(userIdHeader);
+        } catch (Exception e) {
+            log.error("사용자 ID 추출 실패: {}", e.getMessage());
+            throw new BaseException(LevelTestError.UNAUTHORIZED_ACCESS);
+        }
     }
 
 }

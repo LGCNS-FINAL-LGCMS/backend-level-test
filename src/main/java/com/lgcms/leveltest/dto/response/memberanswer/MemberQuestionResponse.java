@@ -8,8 +8,8 @@ import lombok.Getter;
 @Getter
 @Builder
 public class MemberQuestionResponse {
-    private Long id;
-    private Category category;
-    private Difficulty difficulty;
-    private String question;
+    private final Long id;
+    private final Category category;
+    private final Difficulty difficulty;
+    private final String question;
 }

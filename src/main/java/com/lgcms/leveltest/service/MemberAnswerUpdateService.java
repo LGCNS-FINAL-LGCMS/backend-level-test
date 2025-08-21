@@ -43,7 +43,6 @@ public class MemberAnswerUpdateService {
                 .memberAnswer(memberAnswer.getMemberAnswer())
                 .score(result.getScore())
                 .feedback(result.getFeedback())
-                .isCorrect(result.getIsCorrect())
                 .isScored(true)
                 .scoringDetails(detailsJson)
                 .mustIncludeMatched(mustIncludeMatchedStr)

@@ -38,10 +38,6 @@ public interface MemberAnswerRepository extends JpaRepository<MemberAnswer, Long
             """)
     List<Object[]> getAverageScoreByCategory(@Param("memberId") Long memberId);
 
-    @Query("""
-            SELECT COUNT(CASE WHEN ma.isCorrect = true THEN 1 END) * 100.0 / COUNT(*)
-            FROM MemberAnswer ma
-            WHERE ma.memberId = :memberId AND ma.isScored = true
-            """)
-    Double getCorrectRateByMemberId(@Param("memberId") Long memberId);
+
+    long countByMemberId(Long memberId);
 }
