@@ -11,7 +11,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/member/leveltest")
+@RequestMapping("/api/student/leveltest")
 @RequiredArgsConstructor
 public class MemberAnswerController {
 

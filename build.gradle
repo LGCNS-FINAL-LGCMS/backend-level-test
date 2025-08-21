@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.lgcms'
-version = '0.1'
+version = '0.2'
 
 java {
 	toolchain {
@@ -38,6 +38,7 @@ dependencies {
 	implementation 'org.springframework.ai:spring-ai-starter-model-bedrock-converse'
 	implementation 'org.springframework.ai:spring-ai-starter-model-bedrock'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.projectlombok:lombok'

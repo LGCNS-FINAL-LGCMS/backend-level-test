@@ -29,7 +29,7 @@ spring:
     redis:
       host: localhost
       port: 38122
-      database: 0
+      database: 15
 
   kafka:
     bootstrap-servers: localhost:38123
