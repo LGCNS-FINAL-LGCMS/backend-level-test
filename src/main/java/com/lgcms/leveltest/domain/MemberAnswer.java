@@ -61,4 +61,7 @@ public class MemberAnswer {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "concept_analyses", columnDefinition = "TEXT")
+    private String conceptAnalyses;
 }

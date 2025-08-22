@@ -28,12 +28,16 @@ public class MemberAnswerUpdateService {
         }
 
         String detailsJson = null;
+        String conceptAnalysesJson = null;
         try {
             if (result.getScoringDetails() != null) {
                 detailsJson = objectMapper.writeValueAsString(result.getScoringDetails());
             }
+            if (result.getConceptAnalyses() != null) {
+                conceptAnalysesJson = objectMapper.writeValueAsString(result.getConceptAnalyses());
+            }
         } catch (JsonProcessingException e) {
-            log.error("Failed to serialize scoring details", e);
+            log.error("점수 데이터 직렬화 실패", e);
         }
 
         MemberAnswer updatedAnswer = MemberAnswer.builder()
@@ -45,6 +49,7 @@ public class MemberAnswerUpdateService {
                 .feedback(result.getFeedback())
                 .isScored(true)
                 .scoringDetails(detailsJson)
+                .conceptAnalyses(conceptAnalysesJson)  // 추가
                 .mustIncludeMatched(mustIncludeMatchedStr)
                 .scoredAt(LocalDateTime.now())
                 .scoringModel("anthropic.claude-3-haiku-20240307-v1:0")

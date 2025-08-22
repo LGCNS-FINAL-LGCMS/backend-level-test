@@ -17,7 +17,8 @@ public enum LevelTestError implements ErrorCodeInterface {
     UNAUTHORIZED_ACCESS("LETE-07", "접근 권한이 없습니다.", HttpStatus.FORBIDDEN),
     GRADING_FAILED("LETE-08", "채점 처리 중 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
     UNAUTHORIZED_QUESTION_ACCESS("LETE-09", "접근 권한이 없는 문제입니다", HttpStatus.FORBIDDEN),
-    QUESTION_SESSION_EXPIRED("LETE-10", "문제 세션이 만료되었습니다", HttpStatus.BAD_REQUEST);
+    QUESTION_SESSION_EXPIRED("LETE-10", "문제 세션이 만료되었습니다", HttpStatus.BAD_REQUEST),
+    GRADING_NOT_COMPLETED("LETE-11", "아직 모든 문제의 채점이 완료되지 않았습니다.", HttpStatus.BAD_REQUEST);
 
     private final String status;
     private final String message;

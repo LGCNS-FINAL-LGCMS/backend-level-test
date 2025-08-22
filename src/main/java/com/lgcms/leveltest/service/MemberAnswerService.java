@@ -11,8 +11,7 @@ public interface MemberAnswerService {
     List<MemberAnswerResponse> getMemberAnswers(Long memberId);
 
     // 새로운 일괄 제출 메서드
-    SubmissionResponse submitAllAnswers(Long memberId, MemberAnswerRequest request);
+    void submitAllAnswers(Long memberId, MemberAnswerRequest request);
 
-    // 채점 진행 상황 조회
-    GradingProgressResponse getGradingProgress(Long memberId);
+    ReportResponse getReport(Long memberId);
 }

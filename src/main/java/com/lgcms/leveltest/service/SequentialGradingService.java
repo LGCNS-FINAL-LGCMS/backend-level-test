@@ -1,14 +1,13 @@
 package com.lgcms.leveltest.service;
 
 import com.lgcms.leveltest.domain.MemberAnswer;
-import com.lgcms.leveltest.repository.MemberAnswerRepository;
+import com.lgcms.leveltest.service.grading.GradingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -16,10 +15,9 @@ import java.util.concurrent.CompletableFuture;
 public class SequentialGradingService {
 
     private final GradingService gradingService;
-    private final MemberAnswerRepository memberAnswerRepository;
 
     @Async("gradingExecutor")
-    public CompletableFuture<Void> gradeAllAnswersSequentially(Long memberId, List<MemberAnswer> answers) {
+    public void gradeAllAnswersSequentially(Long memberId, List<MemberAnswer> answers) {
         log.info("회원 {}의 답변 순차 채점 시작. 총 {}문제", memberId, answers.size());
 
         int successCount = 0;
@@ -40,6 +38,5 @@ public class SequentialGradingService {
         }
 
         log.info("회원 {}의 순차 채점 완료. 성공: {}/{}", memberId, successCount, answers.size());
-        return CompletableFuture.completedFuture(null);
     }
 }

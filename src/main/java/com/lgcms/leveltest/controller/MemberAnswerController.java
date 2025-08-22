@@ -3,7 +3,7 @@ package com.lgcms.leveltest.controller;
 import com.lgcms.leveltest.common.dto.BaseResponse;
 import com.lgcms.leveltest.dto.request.memberanswer.*;
 import com.lgcms.leveltest.dto.response.memberanswer.*;
-import com.lgcms.leveltest.service.GradingService;
+import com.lgcms.leveltest.service.grading.GradingService;
 import com.lgcms.leveltest.service.MemberAnswerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -11,37 +11,33 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/student/leveltest")
+@RequestMapping("/student/leveltest")
 @RequiredArgsConstructor
 public class MemberAnswerController {
 
     private final MemberAnswerService memberAnswerService;
     private final GradingService gradingService;
-
+    
+    // 사용자의 모든 답변 조회
     @GetMapping("/answers")
     public BaseResponse<List<MemberAnswerResponse>> getMemberAnswers(
             @RequestHeader("X-USER-ID") @Valid Long memberId) {
         return BaseResponse.ok(memberAnswerService.getMemberAnswers(memberId));
     }
-
-    @GetMapping("/answers/comprehensive-feedback")
-    public BaseResponse<String> getComprehensiveFeedback(
+    
+    // 종합 레포트 확인 
+    @GetMapping("/answers/report")
+    public BaseResponse<ReportResponse> getComprehensiveReport(
             @RequestHeader("X-USER-ID") @Valid Long memberId) {
-        return BaseResponse.ok(gradingService.generateComprehensiveFeedback(memberId));
+        return BaseResponse.ok(memberAnswerService.getReport(memberId));
     }
 
-    // 새로운 일괄 제출 API
+    // 전체 문제에 대한 수강생 답변 일괄 제출
     @PostMapping("/answers/submit-all")
-    public BaseResponse<SubmissionResponse> submitAllAnswers(
+    public BaseResponse<String> submitAllAnswers(
             @RequestHeader("X-USER-ID") @Valid Long memberId,
             @Valid @RequestBody MemberAnswerRequest request) {
-        return BaseResponse.ok(memberAnswerService.submitAllAnswers(memberId, request));
-    }
-
-    // 채점 진행 상황 조회 API
-    @GetMapping("/answers/progress")
-    public BaseResponse<GradingProgressResponse> getGradingProgress(
-            @RequestHeader("X-USER-ID") @Valid Long memberId) {
-        return BaseResponse.ok(memberAnswerService.getGradingProgress(memberId));
+        memberAnswerService.submitAllAnswers(memberId, request);
+        return BaseResponse.ok("답변이 성공적으로 제출되었습니다.");
     }
 }
