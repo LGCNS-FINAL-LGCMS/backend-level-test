@@ -3,6 +3,7 @@ package com.lgcms.leveltest.service.grading;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lgcms.leveltest.common.dto.exception.BaseException;
 import com.lgcms.leveltest.common.dto.exception.LevelTestError;
+import com.lgcms.leveltest.config.ChatClientConfig;
 import com.lgcms.leveltest.domain.MemberAnswer;
 import com.lgcms.leveltest.dto.response.scoring.ScoringResult;
 import com.lgcms.leveltest.repository.MemberAnswerRepository;
@@ -27,16 +28,7 @@ public class GradingServiceImpl implements GradingService {
     private final MemberAnswerRepository memberAnswerRepository;
     private final ObjectMapper objectMapper;
     private final MemberAnswerUpdateService memberAnswerUpdateService;
-
-    private ChatClient getChatClient(double temperature, int maxTokens) {
-        return chatClientBuilder
-                .defaultOptions(ChatOptions.builder()
-                        .model("anthropic.claude-3-haiku-20240307-v1:0")
-                        .maxTokens(maxTokens)
-                        .temperature(temperature)
-                        .build())
-                .build();
-    }
+    private final ChatClientConfig chatClientConfig;
 
     @Override
     @Transactional
@@ -49,7 +41,7 @@ public class GradingServiceImpl implements GradingService {
                     memberAnswer.getMemberAnswer()
             );
 
-            String responseContent = getChatClient(0.1, 2000)
+            String responseContent = chatClientConfig.getChatClient(0.1, 2000)
                     .prompt()
                     .system(GradingPrompt.getSystemPrompt())
                     .user(promptText)
@@ -80,7 +72,7 @@ public class GradingServiceImpl implements GradingService {
         try {
             String promptText = GradingPrompt.buildComprehensiveFeedbackPrompt(allAnswers);
 
-            return getChatClient(0.3, 1500)
+            return chatClientConfig.getChatClient(0.3, 1500)
                     .prompt()
                     .user(promptText)
                     .call()
