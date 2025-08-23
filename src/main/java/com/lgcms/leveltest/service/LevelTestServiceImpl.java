@@ -7,7 +7,6 @@ import com.lgcms.leveltest.domain.LevelTest;
 import com.lgcms.leveltest.dto.request.leveltest.LevelTestRequest;
 import com.lgcms.leveltest.dto.response.leveltest.LevelTestResponse;
 import com.lgcms.leveltest.repository.LevelTestRepository;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.lgcms.leveltest.repository.CategoryRedisRepository;
@@ -17,8 +16,6 @@ import com.lgcms.leveltest.domain.Difficulty;
 import java.util.Collections;
 import java.util.ArrayList;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,7 +28,6 @@ public class LevelTestServiceImpl implements LevelTestService {
     private final LevelTestRepository levelTestRepository;
     private final CategoryRedisRepository categoryRedisRepository;
     private final CategoryMappingService categoryMappingService;
-    private final QuestionRequestLogService questionRequestLogService;
 
     @Override
     public LevelTestResponse createQuestion(LevelTestRequest request) {
@@ -149,13 +145,6 @@ public class LevelTestServiceImpl implements LevelTestService {
         Category category = dbCategories.get(0);
         List<LevelTest> selectedQuestions = getQuestionsForCategory(category, 10);
 
-        List<Long> questionIds = selectedQuestions.stream().map(LevelTest::getId).toList();
-        Long memberId = getCurrentMemberId(); // 헤더에서 회원 ID 추출 (아래 메서드 추가 필요)
-        questionRequestLogService.logQuestionRequest(memberId, questionIds);
-
-        log.info("최종 선택된 문제 개수: {}", selectedQuestions.size());
-        log.info("회원 {}가 요청한 문제 IDs: {}", memberId, questionIds);
-
         return selectedQuestions.stream()
                 .map(this::convertToMemberQuestionResponse)
                 .toList();
@@ -197,24 +186,6 @@ public class LevelTestServiceImpl implements LevelTestService {
                 .difficulty(levelTest.getDifficulty())
                 .question(levelTest.getQuestion())
                 .build();
-    }
-
-    private Long getCurrentMemberId() {
-        try {
-            HttpServletRequest request =
-                    ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes())
-                            .getRequest();
-
-            String userIdHeader = request.getHeader("X-USER-ID");
-            if (userIdHeader == null || userIdHeader.trim().isEmpty()) {
-                throw new BaseException(LevelTestError.UNAUTHORIZED_ACCESS);
-            }
-
-            return Long.valueOf(userIdHeader);
-        } catch (Exception e) {
-            log.error("사용자 ID 추출 실패: {}", e.getMessage());
-            throw new BaseException(LevelTestError.UNAUTHORIZED_ACCESS);
-        }
     }
 
 }

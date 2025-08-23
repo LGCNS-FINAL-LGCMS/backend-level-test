@@ -34,7 +34,6 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
     private final GradingService gradingService;
     private final ObjectMapper objectMapper;
     private final SequentialGradingService sequentialGradingService;
-    private final QuestionRequestLogService questionRequestLogService;
 
     @Override
     @Transactional(readOnly = true)
@@ -86,17 +85,6 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
     @Transactional
     public void submitAllAnswers(Long memberId, MemberAnswerRequest request) {
         log.info("회원 {}의 답변 일괄 제출 시작. 문제 수: {}", memberId, request.getAnswers().size());
-
-        List<Long> submittedQuestionIds = request.getAnswers().stream()
-                .map(MemberAnswerRequest.AnswerItem::getQuestionId)
-                .toList();
-
-        boolean isAuthorized = questionRequestLogService.validateQuestionAccess(memberId, submittedQuestionIds);
-        if (!isAuthorized) {
-            throw new BaseException(LevelTestError.UNAUTHORIZED_QUESTION_ACCESS);
-        }
-
-        log.info("회원 {}의 문제 접근 권한 검증 통과", memberId);
 
         List<MemberAnswer> savedAnswers = new ArrayList<>();
 

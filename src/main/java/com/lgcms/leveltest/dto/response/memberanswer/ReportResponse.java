@@ -9,9 +9,9 @@ import java.util.List;
 @Getter
 @Builder
 public class ReportResponse {
-    private final Integer totalScore;
-    private final String studentLevel;
-    private final List<ConceptAnalysis> conceptSummaries;
-    private final String comprehensiveFeedback;
-    private final String nextLearningRecommendation;
+    private Integer totalScore;
+    private String studentLevel;
+    private List<ConceptAnalysis> conceptSummaries;
+    private String comprehensiveFeedback;
+    private String nextLearningRecommendation;
 }

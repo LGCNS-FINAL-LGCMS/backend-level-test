@@ -6,7 +6,7 @@ import lombok.Getter;
 @Getter
 @Builder
 public class ConceptAnalysis {
-    private final String conceptName;
-    private final Integer score;
-    private final String comment;
+    private String conceptName;
+    private Integer score;
+    private String comment;
 }

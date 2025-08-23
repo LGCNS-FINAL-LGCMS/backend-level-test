@@ -6,8 +6,8 @@ import lombok.Getter;
 @Getter
 @Builder
 public class ScoringDetail {
-    private final String criterion;
-    private final Integer points;
-    private final Integer earnedPoints;
-    private final String comment;
+    private String criterion;
+    private Integer points;
+    private Integer earnedPoints;
+    private String comment;
 }
