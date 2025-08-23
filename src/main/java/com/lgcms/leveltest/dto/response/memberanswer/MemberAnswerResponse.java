@@ -1,5 +1,6 @@
 package com.lgcms.leveltest.dto.response.memberanswer;
 
+import com.lgcms.leveltest.dto.response.scoring.ScoringDetail;
 import lombok.Builder;
 import lombok.Getter;
 import java.time.LocalDateTime;
@@ -17,20 +18,9 @@ public class MemberAnswerResponse {
 
     private Boolean isScored;
     private Integer score;
-    private Boolean isCorrect;
     private String feedback;
     private String mustIncludeMatched;
-    private String wrongKeywordsFound;
     private LocalDateTime scoredAt;
     private String scoringModel;
-    private List<ScoringDetail> scoringDetails;  // List<ScoringDetail>로 변경
-
-    @Getter
-    @Builder
-    public static class ScoringDetail {
-        private String criterion;
-        private Integer points;
-        private Integer earnedPoints;
-        private String comment;
-    }
+    private List<ScoringDetail> scoringDetails;
 }

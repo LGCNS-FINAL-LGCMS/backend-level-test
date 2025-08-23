@@ -1,7 +1,7 @@
 package com.lgcms.leveltest.service;
 
 import com.lgcms.leveltest.domain.Category;
-import com.lgcms.leveltest.domain.MemberCategory;
+import com.lgcms.leveltest.domain.CategoryItem;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,9 +28,9 @@ public class CategoryMappingService {
             "Vue", Category.VUEJS
     );
 
-    public List<Category> mapToDbCategories(List<MemberCategory> memberCategories) {
+    public List<Category> mapToDbCategories(List<CategoryItem> memberCategories) {
         return memberCategories.stream()
-                .map(memberCategory -> CATEGORY_MAPPING.get(memberCategory.name()))
+                .map(categoryItem -> CATEGORY_MAPPING.get(categoryItem.name()))
                 .filter(category -> category != null)
                 .distinct()
                 .toList();

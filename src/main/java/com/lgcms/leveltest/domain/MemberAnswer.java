@@ -38,9 +38,6 @@ public class MemberAnswer {
     @Column(name = "feedback", columnDefinition = "TEXT")
     private String feedback;
 
-    @Column(name = "is_correct")
-    private Boolean isCorrect;
-
     @Builder.Default
     @Column(name = "is_scored")
     private Boolean isScored = false;
@@ -64,4 +61,7 @@ public class MemberAnswer {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "concept_analyses", columnDefinition = "TEXT")
+    private String conceptAnalyses;
 }

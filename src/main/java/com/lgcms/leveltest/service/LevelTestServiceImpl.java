@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.lgcms.leveltest.repository.CategoryRedisRepository;
 import com.lgcms.leveltest.dto.response.memberanswer.MemberQuestionResponse;
-import com.lgcms.leveltest.domain.MemberCategory;
+import com.lgcms.leveltest.domain.CategoryItem;
 import com.lgcms.leveltest.domain.Difficulty;
 import java.util.Collections;
 import java.util.ArrayList;
@@ -130,7 +130,7 @@ public class LevelTestServiceImpl implements LevelTestService {
         log.info("카테고리 ID 목록으로 문제 생성: {}", categoryId);
 
         // Redis에서 카테고리 정보 조회
-        List<MemberCategory> memberCategories = categoryRedisRepository.getCategoriesById(List.of(categoryId));
+        List<CategoryItem> memberCategories = categoryRedisRepository.getCategoriesById(List.of(categoryId));
         log.info("레디스에서 조회된 카테고리: {}", memberCategories);
 
         // DB 카테고리로 매핑
@@ -144,8 +144,6 @@ public class LevelTestServiceImpl implements LevelTestService {
 
         Category category = dbCategories.get(0);
         List<LevelTest> selectedQuestions = getQuestionsForCategory(category, 10);
-
-        log.info("최종 선택된 문제 개수: {}", selectedQuestions.size());
 
         return selectedQuestions.stream()
                 .map(this::convertToMemberQuestionResponse)

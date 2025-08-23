@@ -1,24 +1,23 @@
-package com.lgcms.leveltest.service;
+package com.lgcms.leveltest.service.grading;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lgcms.leveltest.common.dto.exception.BaseException;
 import com.lgcms.leveltest.common.dto.exception.LevelTestError;
+import com.lgcms.leveltest.config.ChatClientConfig;
 import com.lgcms.leveltest.domain.MemberAnswer;
 import com.lgcms.leveltest.dto.response.scoring.ScoringResult;
 import com.lgcms.leveltest.repository.MemberAnswerRepository;
-import com.lgcms.leveltest.service.grading.GradingPrompt;
+import com.lgcms.leveltest.service.MemberAnswerUpdateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.ChatOptions;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -29,6 +28,7 @@ public class GradingServiceImpl implements GradingService {
     private final MemberAnswerRepository memberAnswerRepository;
     private final ObjectMapper objectMapper;
     private final MemberAnswerUpdateService memberAnswerUpdateService;
+    private final ChatClientConfig chatClientConfig;
 
     @Override
     @Transactional
@@ -36,41 +36,23 @@ public class GradingServiceImpl implements GradingService {
         log.info("Starting grading for answer ID: {}", memberAnswer.getId());
 
         try {
-            // 모델 명시
-            ChatOptions chatOptions = ChatOptions.builder()
-                    .model("anthropic.claude-3-haiku-20240307-v1:0")
-                    .maxTokens(2000)
-                    .temperature(0.1)
-                    .build();
+            String promptText = GradingPrompt.buildPrompt(
+                    memberAnswer.getQuestion(),
+                    memberAnswer.getMemberAnswer()
+            );
 
-            ChatClient chatClient = chatClientBuilder
-                    .defaultOptions(chatOptions)
-                    .build();
-
-            // 프롬프트 생성
-            GradingPrompt gradingPrompt = GradingPrompt.builder()
-                    .question(memberAnswer.getQuestion())
-                    .memberAnswer(memberAnswer.getMemberAnswer())
-                    .build();
-
-            String promptText = gradingPrompt.buildPrompt();
-
-            log.debug("Sending prompt to Claude Haiku: {}", promptText);
-            
-            String responseContent = chatClient.prompt()
+            String responseContent = chatClientConfig.getChatClient(0.1, 2000)
+                    .prompt()
                     .system(GradingPrompt.getSystemPrompt())
                     .user(promptText)
                     .call()
                     .content();
 
-            log.debug("Received response from Claude: {}", responseContent);
             ScoringResult result = parseGradingResponse(responseContent);
-
             memberAnswerUpdateService.updateWithScoringResult(memberAnswer, result);
 
             log.info("Grading completed for answer ID: {}. Score: {}",
                     memberAnswer.getId(), result.getScore());
-
             return result;
 
         } catch (Exception e) {
@@ -80,63 +62,26 @@ public class GradingServiceImpl implements GradingService {
     }
 
     @Override
-    @Async("gradingExecutor")
-    public CompletableFuture<ScoringResult> gradeAnswerAsync(MemberAnswer memberAnswer) {
-        return CompletableFuture.supplyAsync(() -> gradeAnswer(memberAnswer));
-    }
+    public String generateComprehensiveFeedback(Long memberId) {
+        List<MemberAnswer> allAnswers = memberAnswerRepository.findByMemberIdAndIsScored(memberId, true);
 
-    @Override
-    @Transactional
-    public ScoringResult regradeAnswer(Long answerId) {
-        MemberAnswer memberAnswer = memberAnswerRepository.findById(answerId)
-                .orElseThrow(() -> new BaseException(LevelTestError.ANSWER_NOT_FOUND));
-
-        log.info("Regrading answer ID: {}", answerId);
-
-        MemberAnswer resetAnswer = MemberAnswer.builder()
-                .id(memberAnswer.getId())
-                .memberId(memberAnswer.getMemberId())
-                .question(memberAnswer.getQuestion())
-                .memberAnswer(memberAnswer.getMemberAnswer())
-                .score(null)
-                .feedback(null)
-                .isCorrect(memberAnswer.getIsCorrect())
-                .isScored(false)
-                .scoringDetails(memberAnswer.getScoringDetails())
-                .mustIncludeMatched(memberAnswer.getMustIncludeMatched())
-                .scoredAt(memberAnswer.getScoredAt())
-                .scoringModel(memberAnswer.getScoringModel())
-                .createdAt(memberAnswer.getCreatedAt())
-                .build();
-
-        memberAnswerRepository.save(resetAnswer);
-
-        return gradeAnswer(resetAnswer);
-    }
-
-    @Override
-    @Transactional
-    public int gradeAllUnscoredAnswers(Long memberId) {
-        List<MemberAnswer> unscoredAnswers = memberAnswerRepository
-                .findByMemberIdAndIsScored(memberId, false);
-
-        log.info("Found {} unscored answers for member ID: {}",
-                unscoredAnswers.size(), memberId);
-
-        int gradedCount = 0;
-        for (MemberAnswer answer : unscoredAnswers) {
-            try {
-                gradeAnswer(answer);
-                gradedCount++;
-            } catch (Exception e) {
-                log.error("Failed to grade answer ID: {}", answer.getId(), e);
-            }
+        if (allAnswers.size() < 10) {
+            return "아직 모든 문제의 채점이 완료되지 않았습니다. (" + allAnswers.size() + "/10)";
         }
 
-        log.info("Graded {} out of {} answers for member ID: {}",
-                gradedCount, unscoredAnswers.size(), memberId);
+        try {
+            String promptText = GradingPrompt.buildComprehensiveFeedbackPrompt(allAnswers);
 
-        return gradedCount;
+            return chatClientConfig.getChatClient(0.3, 1500)
+                    .prompt()
+                    .user(promptText)
+                    .call()
+                    .content();
+
+        } catch (Exception e) {
+            log.error("Error generating comprehensive feedback for member: {}", memberId, e);
+            return "종합 피드백 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+        }
     }
 
     private ScoringResult parseGradingResponse(String jsonResponse) {
@@ -159,12 +104,10 @@ public class GradingServiceImpl implements GradingService {
 
             log.info("=== PARSED RESULT ===");
             log.info("Score: {}", result.getScore());
-            log.info("IsCorrect: {}", result.getIsCorrect());
             log.info("Feedback: {}", result.getFeedback());
             log.info("Strengths: {}", result.getStrengths());
             log.info("Improvements: {}", result.getImprovements());
             log.info("MustIncludeMatched: {}", result.getMustIncludeMatched());
-            log.info("WrongKeywordsFound: {}", result.getWrongKeywordsFound());
             log.info("=== PARSED RESULT END ===");
 
             return result;
@@ -175,14 +118,12 @@ public class GradingServiceImpl implements GradingService {
 
             return ScoringResult.builder()
                     .score(75)
-                    .isCorrect(true)
                     .feedback("AI 채점 응답 파싱에 실패했습니다. 답변 내용: " +
                             (jsonResponse.length() > 100 ?
                                     jsonResponse.substring(0, 100) + "..." : jsonResponse))
                     .strengths("시스템 오류로 자동 분석 불가")
                     .improvements("수동 검토가 필요합니다")
                     .mustIncludeMatched(new ArrayList<>())
-                    .wrongKeywordsFound(new ArrayList<>())
                     .scoringDetails(new ArrayList<>())
                     .modelUsed("anthropic.claude-3-haiku-20240307-v1:0")
                     .scoredAt(LocalDateTime.now())
