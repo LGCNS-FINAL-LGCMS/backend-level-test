@@ -49,7 +49,7 @@ public class MemberAnswerUpdateService {
                 .feedback(result.getFeedback())
                 .isScored(true)
                 .scoringDetails(detailsJson)
-                .conceptAnalyses(conceptAnalysesJson)  // 추가
+                .conceptAnalyses(conceptAnalysesJson)
                 .mustIncludeMatched(mustIncludeMatchedStr)
                 .scoredAt(LocalDateTime.now())
                 .scoringModel("anthropic.claude-3-haiku-20240307-v1:0")

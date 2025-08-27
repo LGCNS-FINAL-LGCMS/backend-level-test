@@ -14,6 +14,7 @@ import com.lgcms.leveltest.repository.LevelTestRepository;
 import com.lgcms.leveltest.repository.MemberAnswerRepository;
 import com.lgcms.leveltest.service.grading.GradingService;
 import lombok.RequiredArgsConstructor;
+import com.lgcms.leveltest.config.ChatClientConfig;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -34,6 +35,7 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
     private final GradingService gradingService;
     private final ObjectMapper objectMapper;
     private final SequentialGradingService sequentialGradingService;
+    private final ChatClientConfig chatClientConfig;
 
     @Override
     @Transactional(readOnly = true)
@@ -117,14 +119,14 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
             throw new BaseException(LevelTestError.GRADING_NOT_COMPLETED);
         }
 
-        // 1. 총점 계산 (난이도별 차등 배점)
+        // 1. 총점 계산
         Integer totalScore = calculateTotalScore(allAnswers);
 
         // 2. 학생 레벨 결정
         String studentLevel = determineStudentLevel(totalScore);
 
-        // 3. 개념별 이해도 취합
-        List<ConceptAnalysis> conceptSummaries = aggregateConceptAnalyses(allAnswers);
+        // 3. AI를 통한 개념별 이해도 취합
+        List<ConceptAnalysis> conceptSummaries = getConceptSummariesFromAI(memberId);
 
         // 4. 종합 피드백 생성
         String comprehensiveFeedback = generateComprehensiveFeedbackText(allAnswers, totalScore, memberId);
@@ -141,33 +143,91 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
                 .build();
     }
 
-    private Integer calculateTotalScore(List<MemberAnswer> answers) {
-        int totalScore = 0;
-        for (MemberAnswer answer : answers) {
-            int originalScore = answer.getScore() != null ? answer.getScore() : 0;
-            Difficulty difficulty = answer.getQuestion().getDifficulty();
+    private List<ConceptAnalysis> getConceptSummariesFromAI(Long memberId) {
+        try {
+            String prompt = buildConceptAnalysisPrompt(memberId);
+            String response = chatClientConfig.getChatClient(0.2, 800)
+                    .prompt()
+                    .user(prompt)
+                    .call()
+                    .content();
 
-            // 난이도별 가중치 적용하여 100점 만점으로 변환
-            int weightedScore = switch (difficulty) {
-                case LOW -> (originalScore * 8) / 100;      // 8점 만점
-                case MEDIUM -> (originalScore * 10) / 100;  // 10점 만점
-                case HIGH -> (originalScore * 12) / 100;    // 12점 만점
-            };
-            totalScore += weightedScore;
+            List<ConceptAnalysis> result = parseConceptAnalysisFromResponse(response);
+            if (result.isEmpty()) {
+                throw new RuntimeException("AI 응답이 비어있음");
+            }
+            return result;
+        } catch (Exception e) {
+            log.error("AI 개념 분석 실패, 폴백 방식 사용", e);
+            return aggregateConceptAnalyses(memberAnswerRepository.findByMemberIdAndIsScored(memberId, true));
         }
-        return totalScore;
     }
 
-    private String determineStudentLevel(Integer totalScore) {
-        if (totalScore >= 90) return "상";
-        if (totalScore >= 40) return "중";
-        return "하";
+    private String buildConceptAnalysisPrompt(Long memberId) {
+        List<MemberAnswer> answers = memberAnswerRepository.findByMemberIdAndIsScored(memberId, true);
+
+        StringBuilder allConcepts = new StringBuilder();
+        for (MemberAnswer answer : answers) {
+            List<ConceptAnalysis> concepts = extractConceptAnalyses(answer);
+            if (!concepts.isEmpty()) {
+                allConcepts.append(String.format("[문제 %d] ", answers.indexOf(answer) + 1));
+                for (ConceptAnalysis concept : concepts) {
+                    allConcepts.append(String.format("%s(점수:%d, %s) ",
+                            concept.getConceptName(), concept.getScore(), concept.getComment()));
+                }
+                allConcepts.append("\n");
+            }
+        }
+
+        return String.format("""
+            다음은 학습자의 각 문제별 개념 이해도 분석입니다:
+            
+            %s
+            
+            위 개념들을 분석하여 다음 작업을 수행해주세요:
+            1. 의미가 중복되거나 유사한 개념들은 하나로 통합
+            2. 가장 개선이 필요한(점수가 낮은) 6개 핵심 개념만 선별
+            3. 각 개념의 평균 점수와 대표적인 코멘트 선택
+            
+            JSON 형식으로 정확히 6개만 응답:
+            [
+                {
+                    "conceptName": "통합된 개념명",
+                    "score": 평균점수(1-5 사이의 정수),
+                    "comment": "대표 코멘트"
+                }
+            ]
+            
+            통합 예시:
+            - "SpEL 기능", "SpEL 주요 용도" → "SpEL(Spring Expression Language)"
+            - "Spring Data Commons", "Spring Data Commons 버전 관리" → "Spring Data Commons"
+            """, allConcepts.toString());
     }
 
+    private List<ConceptAnalysis> parseConceptAnalysisFromResponse(String response) {
+        try {
+            String cleanedJson = response
+                    .replaceAll("```json\\s*", "")
+                    .replaceAll("```\\s*$", "")
+                    .trim();
+
+            TypeReference<List<ConceptAnalysis>> typeRef = new TypeReference<List<ConceptAnalysis>>() {};
+            List<ConceptAnalysis> concepts = objectMapper.readValue(cleanedJson, typeRef);
+
+            // 정확히 6개로 제한
+            return concepts.stream().limit(6).collect(Collectors.toList());
+
+        } catch (Exception e) {
+            log.error("개념 분석 응답 파싱 실패: {}", response, e);
+            // RuntimeException 대신 폴백을 위해 빈 리스트 반환
+            return new ArrayList<>();
+        }
+    }
+
+    // 폴백용 간단한 집계 메서드
     private List<ConceptAnalysis> aggregateConceptAnalyses(List<MemberAnswer> answers) {
         Map<String, List<ConceptAnalysis>> conceptMap = new HashMap<>();
 
-        // 각 답변에서 개념 분석 데이터 추출
         for (MemberAnswer answer : answers) {
             List<ConceptAnalysis> concepts = extractConceptAnalyses(answer);
             for (ConceptAnalysis concept : concepts) {
@@ -176,13 +236,11 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
             }
         }
 
-        // 개념별 평균 점수 계산 및 종합
         List<ConceptAnalysis> result = new ArrayList<>();
         for (Map.Entry<String, List<ConceptAnalysis>> entry : conceptMap.entrySet()) {
             String conceptName = entry.getKey();
             List<ConceptAnalysis> conceptList = entry.getValue();
 
-            // 평균 점수 계산
             double avgScore = conceptList.stream()
                     .mapToInt(ConceptAnalysis::getScore)
                     .average()
@@ -191,7 +249,6 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
             int finalScore = (int) Math.round(avgScore);
             finalScore = Math.max(1, Math.min(5, finalScore));
 
-            // 대표 코멘트 선택 (가장 최근 것 또는 가장 긴 것)
             String representativeComment = conceptList.get(conceptList.size() - 1).getComment();
 
             result.add(ConceptAnalysis.builder()
@@ -201,7 +258,23 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
                     .build());
         }
 
-        return result;
+        // 점수가 낮은 순으로 정렬하여 6개만 반환
+        return result.stream()
+                .sorted(Comparator.comparingInt(ConceptAnalysis::getScore))
+                .limit(6)
+                .collect(Collectors.toList());
+    }
+
+    private Integer calculateTotalScore(List<MemberAnswer> answers) {
+        return answers.stream()
+                .mapToInt(answer -> answer.getScore() != null ? answer.getScore() : 0)
+                .sum();
+    }
+
+    private String determineStudentLevel(Integer totalScore) {
+        if (totalScore >= 90) return "상";
+        if (totalScore >= 40) return "중";
+        return "하";
     }
 
     private List<ConceptAnalysis> extractConceptAnalyses(MemberAnswer answer) {
@@ -231,32 +304,23 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
                 .toList();
 
         if (!weakConcepts.isEmpty()) {
-            recommendation.append("**우선 학습 권장 영역**: ");
+            recommendation.append("우선 학습이 필요한 영역은 ");
             recommendation.append(weakConcepts.stream()
                     .map(ConceptAnalysis::getConceptName)
                     .collect(Collectors.joining(", ")));
-            recommendation.append("\n\n");
+            recommendation.append("입니다. ");
         }
 
         // 레벨별 맞춤 추천
         switch (studentLevel) {
             case "상" -> {
-                recommendation.append("**고급 과정 추천**\n");
-                recommendation.append("- 실무 프로젝트 참여 및 포트폴리오 구축\n");
-                recommendation.append("- 아키텍처 설계 및 성능 최적화 학습\n");
-                recommendation.append("- 오픈소스 기여 및 기술 블로그 작성");
+                recommendation.append("고급 과정에서는 실무 프로젝트 참여와 포트폴리오 구축을 통해 역량을 확장하고, 아키텍처 설계와 성능 최적화 학습에 집중하며, 오픈소스 기여나 기술 블로그 작성을 통해 경험을 넓혀가는 것이 좋습니다.");
             }
             case "중" -> {
-                recommendation.append("**중급 과정 추천**\n");
-                recommendation.append("- 핵심 개념 보강 및 심화 학습\n");
-                recommendation.append("- 실습 위주의 프로젝트 경험 쌓기\n");
-                recommendation.append("- 코드 리뷰 및 협업 경험 늘리기");
+                recommendation.append("중급 수준에서는 핵심 개념을 보강하고 심화 학습을 진행하며, 실습 위주의 프로젝트 경험을 쌓고 코드 리뷰와 협업 경험을 늘려가는 것이 도움이 됩니다.");
             }
             case "하" -> {
-                recommendation.append("**기초 과정 추천**\n");
-                recommendation.append("- 기본 개념부터 차근차근 학습\n");
-                recommendation.append("- 간단한 예제와 실습 반복하기\n");
-                recommendation.append("- 멘토링이나 스터디 그룹 참여");
+                recommendation.append("기초 단계에서는 기본 개념을 차근차근 학습하고 간단한 예제와 실습을 반복하며, 멘토링이나 스터디 그룹에 참여하여 학습 동기를 유지하는 것이 좋습니다.");
             }
         }
 
