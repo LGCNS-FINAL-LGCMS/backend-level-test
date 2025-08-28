@@ -3,13 +3,13 @@ package com.lgcms.leveltest.service.grading;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lgcms.leveltest.common.dto.exception.BaseException;
 import com.lgcms.leveltest.common.dto.exception.LevelTestError;
-import com.lgcms.leveltest.config.ChatClientConfig;
 import com.lgcms.leveltest.domain.MemberAnswer;
 import com.lgcms.leveltest.dto.response.scoring.ScoringResult;
 import com.lgcms.leveltest.repository.MemberAnswerRepository;
 import com.lgcms.leveltest.service.MemberAnswerUpdateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +25,8 @@ public class GradingServiceImpl implements GradingService {
     private final MemberAnswerRepository memberAnswerRepository;
     private final ObjectMapper objectMapper;
     private final MemberAnswerUpdateService memberAnswerUpdateService;
-    private final ChatClientConfig chatClientConfig;
+    private final ChatClient gradingChatClient;
+    private final ChatClient feedbackChatClient;
 
     @Override
     @Transactional
@@ -38,7 +39,7 @@ public class GradingServiceImpl implements GradingService {
                     memberAnswer.getMemberAnswer()
             );
 
-            String responseContent = chatClientConfig.getChatClient(0.1, 2000)
+            String responseContent = gradingChatClient
                     .prompt()
                     .system(GradingPrompt.getSystemPrompt())
                     .user(promptText)
@@ -69,7 +70,7 @@ public class GradingServiceImpl implements GradingService {
         try {
             String promptText = GradingPrompt.buildComprehensiveFeedbackPrompt(allAnswers);
 
-            return chatClientConfig.getChatClient(0.3, 1500)
+            return feedbackChatClient
                     .prompt()
                     .user(promptText)
                     .call()

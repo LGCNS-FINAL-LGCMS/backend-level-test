@@ -3,7 +3,6 @@ package com.lgcms.leveltest.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lgcms.leveltest.common.dto.exception.BaseException;
 import com.lgcms.leveltest.common.dto.exception.LevelTestError;
-import com.lgcms.leveltest.domain.Difficulty;
 import com.lgcms.leveltest.domain.LevelTest;
 import com.lgcms.leveltest.domain.MemberAnswer;
 import com.lgcms.leveltest.dto.request.memberanswer.*;
@@ -14,7 +13,7 @@ import com.lgcms.leveltest.repository.LevelTestRepository;
 import com.lgcms.leveltest.repository.MemberAnswerRepository;
 import com.lgcms.leveltest.service.grading.GradingService;
 import lombok.RequiredArgsConstructor;
-import com.lgcms.leveltest.config.ChatClientConfig;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -35,7 +34,7 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
     private final GradingService gradingService;
     private final ObjectMapper objectMapper;
     private final SequentialGradingService sequentialGradingService;
-    private final ChatClientConfig chatClientConfig;
+    private final ChatClient conceptAnalysisChatClient;
 
     @Override
     @Transactional(readOnly = true)
@@ -146,7 +145,7 @@ public class MemberAnswerServiceImpl implements MemberAnswerService {
     private List<ConceptAnalysis> getConceptSummariesFromAI(Long memberId) {
         try {
             String prompt = buildConceptAnalysisPrompt(memberId);
-            String response = chatClientConfig.getChatClient(0.2, 800)
+            String response = conceptAnalysisChatClient
                     .prompt()
                     .user(prompt)
                     .call()
