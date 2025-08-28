@@ -3,7 +3,6 @@ package com.lgcms.leveltest.service.grading;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lgcms.leveltest.common.dto.exception.BaseException;
 import com.lgcms.leveltest.common.dto.exception.LevelTestError;
-import com.lgcms.leveltest.config.ChatClientConfig;
 import com.lgcms.leveltest.domain.MemberAnswer;
 import com.lgcms.leveltest.dto.response.scoring.ScoringResult;
 import com.lgcms.leveltest.repository.MemberAnswerRepository;
@@ -11,7 +10,6 @@ import com.lgcms.leveltest.service.MemberAnswerUpdateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,11 +22,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GradingServiceImpl implements GradingService {
 
-    private final ChatClient.Builder chatClientBuilder;
     private final MemberAnswerRepository memberAnswerRepository;
     private final ObjectMapper objectMapper;
     private final MemberAnswerUpdateService memberAnswerUpdateService;
-    private final ChatClientConfig chatClientConfig;
+    private final ChatClient gradingChatClient;
+    private final ChatClient feedbackChatClient;
 
     @Override
     @Transactional
@@ -41,7 +39,7 @@ public class GradingServiceImpl implements GradingService {
                     memberAnswer.getMemberAnswer()
             );
 
-            String responseContent = chatClientConfig.getChatClient(0.1, 2000)
+            String responseContent = gradingChatClient
                     .prompt()
                     .system(GradingPrompt.getSystemPrompt())
                     .user(promptText)
@@ -72,7 +70,7 @@ public class GradingServiceImpl implements GradingService {
         try {
             String promptText = GradingPrompt.buildComprehensiveFeedbackPrompt(allAnswers);
 
-            return chatClientConfig.getChatClient(0.3, 1500)
+            return feedbackChatClient
                     .prompt()
                     .user(promptText)
                     .call()
@@ -86,19 +84,11 @@ public class GradingServiceImpl implements GradingService {
 
     private ScoringResult parseGradingResponse(String jsonResponse) {
         try {
-            log.info("=== CLAUDE RAW RESPONSE ===");
-            log.info(jsonResponse);
-            log.info("=== CLAUDE RAW RESPONSE END ===");
-
             String cleanedJson = jsonResponse
                     .replaceAll("```json\\s*", "")
                     .replaceAll("```\\s*$", "")
                     .replaceAll("```", "")
                     .trim();
-
-            log.info("=== CLEANED JSON ===");
-            log.info(cleanedJson);
-            log.info("=== CLEANED JSON END ===");
 
             ScoringResult result = objectMapper.readValue(cleanedJson, ScoringResult.class);
 
@@ -107,7 +97,6 @@ public class GradingServiceImpl implements GradingService {
             log.info("Feedback: {}", result.getFeedback());
             log.info("Strengths: {}", result.getStrengths());
             log.info("Improvements: {}", result.getImprovements());
-            log.info("MustIncludeMatched: {}", result.getMustIncludeMatched());
             log.info("=== PARSED RESULT END ===");
 
             return result;
