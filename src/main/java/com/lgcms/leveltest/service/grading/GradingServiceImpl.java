@@ -6,7 +6,7 @@ import com.lgcms.leveltest.common.dto.exception.LevelTestError;
 import com.lgcms.leveltest.domain.MemberAnswer;
 import com.lgcms.leveltest.dto.response.scoring.ScoringResult;
 import com.lgcms.leveltest.repository.MemberAnswerRepository;
-import com.lgcms.leveltest.service.MemberAnswerUpdateService;
+import com.lgcms.leveltest.service.mamberanswer.MemberAnswerUpdateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;

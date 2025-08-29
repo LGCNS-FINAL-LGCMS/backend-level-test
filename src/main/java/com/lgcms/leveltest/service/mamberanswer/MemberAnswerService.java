@@ -1,4 +1,4 @@
-package com.lgcms.leveltest.service;
+package com.lgcms.leveltest.service.mamberanswer;
 
 import com.lgcms.leveltest.dto.request.memberanswer.*;
 import com.lgcms.leveltest.dto.response.memberanswer.*;
@@ -12,6 +12,4 @@ public interface MemberAnswerService {
 
     // 새로운 일괄 제출 메서드
     void submitAllAnswers(Long memberId, MemberAnswerRequest request);
-
-    ReportResponse getReport(Long memberId);
 }

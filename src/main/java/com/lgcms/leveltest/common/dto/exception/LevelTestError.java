@@ -16,7 +16,8 @@ public enum LevelTestError implements ErrorCodeInterface {
     ANSWER_NOT_FOUND("LETE-06", "해당 답변을 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
     UNAUTHORIZED_ACCESS("LETE-07", "접근 권한이 없습니다.", HttpStatus.FORBIDDEN),
     GRADING_FAILED("LETE-08", "채점 처리 중 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
-    GRADING_NOT_COMPLETED("LETE-11", "아직 모든 문제의 채점이 완료되지 않았습니다.", HttpStatus.BAD_REQUEST);
+    GRADING_NOT_COMPLETED("LETE-11", "아직 모든 문제의 채점이 완료되지 않았습니다.", HttpStatus.BAD_REQUEST),
+    REPORT_NOT_FOUND("LETE-12", "해당 레포트를 찾을 수 없습니다.", HttpStatus.NOT_FOUND);
 
     private final String status;
     private final String message;

@@ -2,10 +2,15 @@ package com.lgcms.leveltest.dto.request.memberanswer;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.List;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class MemberAnswerRequest {
 
     @NotEmpty(message = "답변 목록은 비어있을 수 없습니다.")

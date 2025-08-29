@@ -1,4 +1,4 @@
-package com.lgcms.leveltest.service;
+package com.lgcms.leveltest.service.leveltest;
 
 import com.lgcms.leveltest.dto.request.leveltest.LevelTestRequest;
 import com.lgcms.leveltest.dto.response.leveltest.LevelTestResponse;
