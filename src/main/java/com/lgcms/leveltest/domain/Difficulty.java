@@ -1,5 +1,8 @@
 package com.lgcms.leveltest.domain;
 
+import lombok.Getter;
+
+@Getter
 public enum Difficulty {
     HIGH("상"),
     MEDIUM("중"),
@@ -9,9 +12,5 @@ public enum Difficulty {
 
     Difficulty(String difficultyName) {
         this.difficultyName = difficultyName;
-    }
-
-    public String getDifficultyName() {
-        return difficultyName;
     }
 }
