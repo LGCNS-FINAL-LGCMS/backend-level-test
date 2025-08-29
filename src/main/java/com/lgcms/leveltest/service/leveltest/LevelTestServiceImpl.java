@@ -1,4 +1,4 @@
-package com.lgcms.leveltest.service;
+package com.lgcms.leveltest.service.leveltest;
 
 import com.lgcms.leveltest.common.dto.exception.BaseException;
 import com.lgcms.leveltest.common.dto.exception.LevelTestError;
@@ -7,6 +7,7 @@ import com.lgcms.leveltest.domain.LevelTest;
 import com.lgcms.leveltest.dto.request.leveltest.LevelTestRequest;
 import com.lgcms.leveltest.dto.response.leveltest.LevelTestResponse;
 import com.lgcms.leveltest.repository.LevelTestRepository;
+import com.lgcms.leveltest.service.CategoryMappingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.lgcms.leveltest.repository.CategoryRedisRepository;

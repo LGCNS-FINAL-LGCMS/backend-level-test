@@ -1,4 +1,4 @@
-package com.lgcms.leveltest.service;
+package com.lgcms.leveltest.service.report;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

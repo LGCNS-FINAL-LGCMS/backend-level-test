@@ -5,7 +5,7 @@ import com.lgcms.leveltest.dto.request.leveltest.LevelTestRequest;
 import com.lgcms.leveltest.dto.response.leveltest.LevelTestResponse;
 import com.lgcms.leveltest.dto.response.memberanswer.MemberQuestionResponse;
 import com.lgcms.leveltest.repository.CategoryRedisRepository;
-import com.lgcms.leveltest.service.LevelTestService;
+import com.lgcms.leveltest.service.leveltest.LevelTestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;

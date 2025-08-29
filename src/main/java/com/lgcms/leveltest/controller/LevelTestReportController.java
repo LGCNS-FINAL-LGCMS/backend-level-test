@@ -3,7 +3,7 @@ package com.lgcms.leveltest.controller;
 import com.lgcms.leveltest.common.dto.BaseResponse;
 import com.lgcms.leveltest.dto.response.report.ReportDetailResponse;
 import com.lgcms.leveltest.dto.response.report.ReportHistoryResponse;
-import com.lgcms.leveltest.service.LevelTestReportService;
+import com.lgcms.leveltest.service.report.LevelTestReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;

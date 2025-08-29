@@ -4,7 +4,7 @@ import com.lgcms.leveltest.common.dto.BaseResponse;
 import com.lgcms.leveltest.dto.request.memberanswer.*;
 import com.lgcms.leveltest.dto.response.memberanswer.*;
 import com.lgcms.leveltest.service.grading.GradingService;
-import com.lgcms.leveltest.service.MemberAnswerService;
+import com.lgcms.leveltest.service.mamberanswer.MemberAnswerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
@@ -23,13 +23,6 @@ public class MemberAnswerController {
     public BaseResponse<List<MemberAnswerResponse>> getMemberAnswers(
             @RequestHeader("X-USER-ID") @Valid Long memberId) {
         return BaseResponse.ok(memberAnswerService.getMemberAnswers(memberId));
-    }
-    
-    // 종합 레포트 확인 
-    @GetMapping("/answers/report")
-    public BaseResponse<ReportResponse> getComprehensiveReport(
-            @RequestHeader("X-USER-ID") @Valid Long memberId) {
-        return BaseResponse.ok(memberAnswerService.getReport(memberId));
     }
 
     // 전체 문제에 대한 수강생 답변 일괄 제출

@@ -1,7 +1,7 @@
-package com.lgcms.leveltest.service;
+package com.lgcms.leveltest.service.grading;
 
 import com.lgcms.leveltest.domain.MemberAnswer;
-import com.lgcms.leveltest.service.grading.GradingService;
+import com.lgcms.leveltest.service.report.LevelTestReportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;

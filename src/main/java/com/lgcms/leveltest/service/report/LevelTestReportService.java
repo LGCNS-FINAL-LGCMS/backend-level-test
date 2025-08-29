@@ -1,4 +1,4 @@
-package com.lgcms.leveltest.service;
+package com.lgcms.leveltest.service.report;
 
 import com.lgcms.leveltest.dto.response.report.ReportDetailResponse;
 import com.lgcms.leveltest.dto.response.report.ReportHistoryResponse;
