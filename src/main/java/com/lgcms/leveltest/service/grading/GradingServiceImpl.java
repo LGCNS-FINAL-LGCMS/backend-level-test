@@ -61,7 +61,7 @@ public class GradingServiceImpl implements GradingService {
 
     @Override
     public String generateComprehensiveFeedback(Long memberId) {
-        List<MemberAnswer> allAnswers = memberAnswerRepository.findByMemberIdAndIsScored(memberId, true);
+        List<MemberAnswer> allAnswers = memberAnswerRepository.findTop10ByMemberIdAndIsScoredOrderByIdDesc(memberId, true);
 
         if (allAnswers.size() < 10) {
             return "아직 모든 문제의 채점이 완료되지 않았습니다. (" + allAnswers.size() + "/10)";
