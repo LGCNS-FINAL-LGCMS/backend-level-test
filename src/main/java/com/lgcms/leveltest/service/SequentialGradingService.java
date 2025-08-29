@@ -15,6 +15,7 @@ import java.util.List;
 public class SequentialGradingService {
 
     private final GradingService gradingService;
+    private final LevelTestReportService reportService;
 
     @Async("gradingExecutor")
     public void gradeAllAnswersSequentially(Long memberId, List<MemberAnswer> answers) {
@@ -34,6 +35,16 @@ public class SequentialGradingService {
                 }
             } catch (Exception e) {
                 log.error("답변 ID {} 채점 실패: {}", answer.getId(), e.getMessage());
+            }
+        }
+
+        // 모든 채점 완료 후 자동으로 레포트 생성
+        if (successCount == answers.size() && successCount >= 10) {
+            try {
+                reportService.createReport(memberId);
+                log.info("회원 {}의 레포트 자동 생성 완료", memberId);
+            } catch (Exception e) {
+                log.error("레포트 자동 생성 실패: {}", e.getMessage());
             }
         }
 
