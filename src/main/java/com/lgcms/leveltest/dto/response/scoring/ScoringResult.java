@@ -6,6 +6,8 @@ import java.util.List;
 
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ScoringResult {
 
     private Integer score;

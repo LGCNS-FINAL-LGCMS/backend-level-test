@@ -2,14 +2,15 @@ package com.lgcms.leveltest.dto.response.report;
 
 import com.lgcms.leveltest.domain.StudentLevel;
 import com.lgcms.leveltest.dto.response.scoring.ConceptAnalysis;
-import lombok.Builder;
-import lombok.Getter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ReportDetailResponse {
     private Long reportId;
     private Long memberId;

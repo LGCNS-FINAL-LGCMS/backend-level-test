@@ -7,7 +7,7 @@ import com.lgcms.leveltest.service.report.LevelTestReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-
+import org.springframework.http.ResponseEntity;
 import java.util.List;
 
 @RestController
@@ -19,23 +19,23 @@ public class LevelTestReportController {
     
     // 새 레포트 생성
     @PostMapping("")
-    public BaseResponse<ReportDetailResponse> createReport(
+    public ResponseEntity<BaseResponse<ReportDetailResponse>> createReport(
             @RequestHeader("X-USER-ID") @Valid Long memberId) {
-        return BaseResponse.ok(reportService.createReport(memberId));
+        return ResponseEntity.ok(BaseResponse.ok(reportService.createReport(memberId)));
     }
 
     // 특정 수강생의 레포트 히스토리 전체 목록 조회
     @GetMapping("")
-    public BaseResponse<List<ReportHistoryResponse>> getReportHistory(
+    public ResponseEntity<BaseResponse<List<ReportHistoryResponse>>> getReportHistory(
             @RequestHeader("X-USER-ID") @Valid Long memberId) {
-        return BaseResponse.ok(reportService.getReportHistory(memberId));
+        return ResponseEntity.ok(BaseResponse.ok(reportService.getReportHistory(memberId)));
     }
 
     // 특정 수강생의 특정 레포트 상세 조회
     @GetMapping("/{reportId}")
-    public BaseResponse<ReportDetailResponse> getReportDetail(
+    public ResponseEntity<BaseResponse<ReportDetailResponse>> getReportDetail(
             @RequestHeader("X-USER-ID") @Valid Long memberId,
             @PathVariable @Valid Long reportId) {
-        return BaseResponse.ok(reportService.getReportDetail(memberId, reportId));
+        return ResponseEntity.ok(BaseResponse.ok(reportService.getReportDetail(memberId, reportId)));
     }
 }
