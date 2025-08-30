@@ -43,7 +43,7 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
         log.info("회원 {}의 새 레포트 생성 시작", memberId);
 
         // 채점 완료된 답변 조회
-        List<MemberAnswer> allAnswers = memberAnswerRepository.findByMemberIdAndIsScored(memberId, true);
+        List<MemberAnswer> allAnswers = memberAnswerRepository.findTop10ByMemberIdAndIsScoredOrderByIdDesc(memberId, true);
 
         if (allAnswers.size() < 10) {
             throw new BaseException(LevelTestError.GRADING_NOT_COMPLETED);
@@ -176,12 +176,12 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
             return result;
         } catch (Exception e) {
             log.error("AI 개념 분석 실패, 폴백 방식 사용", e);
-            return aggregateConceptAnalyses(memberAnswerRepository.findByMemberIdAndIsScored(memberId, true));
+            return aggregateConceptAnalyses(memberAnswerRepository.findTop10ByMemberIdAndIsScoredOrderByIdDesc(memberId, true));
         }
     }
 
     private String buildConceptAnalysisPrompt(Long memberId) {
-        List<MemberAnswer> answers = memberAnswerRepository.findByMemberIdAndIsScored(memberId, true);
+        List<MemberAnswer> answers = memberAnswerRepository.findTop10ByMemberIdAndIsScoredOrderByIdDesc(memberId, true);
 
         StringBuilder allConcepts = new StringBuilder();
         for (MemberAnswer answer : answers) {
@@ -289,7 +289,7 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
     }
 
     private String generateComprehensiveFeedback(Long memberId) {
-        List<MemberAnswer> allAnswers = memberAnswerRepository.findByMemberIdAndIsScored(memberId, true);
+        List<MemberAnswer> allAnswers = memberAnswerRepository.findTop10ByMemberIdAndIsScoredOrderByIdDesc(memberId, true);
 
         if (allAnswers.size() < 10) {
             return "아직 모든 문제의 채점이 완료되지 않았습니다. (" + allAnswers.size() + "/10)";
