@@ -17,6 +17,7 @@ public class ReportDetailResponse {
     private Integer totalScore;
     private Integer totalQuestions;
     private StudentLevel studentLevel;
+    private String category;
     private List<ConceptAnalysis> conceptSummaries;
     private String comprehensiveFeedback;
     private String nextLearningRecommendation;
