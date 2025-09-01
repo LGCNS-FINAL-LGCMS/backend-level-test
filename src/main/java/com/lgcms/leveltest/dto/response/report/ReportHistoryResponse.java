@@ -16,5 +16,6 @@ public class ReportHistoryResponse {
     private Long reportId;
     private Integer totalScore;
     private StudentLevel studentLevel;
+    private String category;
     private LocalDateTime createdAt;
 }

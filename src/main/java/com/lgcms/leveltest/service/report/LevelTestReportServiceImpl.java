@@ -89,6 +89,7 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
                 .totalScore(savedReport.getTotalScore())
                 .totalQuestions(savedReport.getTotalQuestions())
                 .studentLevel(savedReport.getStudentLevel())
+                .category(getCategoryFromAnswers(allAnswers))
                 .conceptSummaries(conceptSummaries)
                 .comprehensiveFeedback(savedReport.getComprehensiveFeedback())
                 .nextLearningRecommendation(savedReport.getNextLearningRecommendation())
@@ -108,6 +109,7 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
                         .reportId(report.getId())
                         .totalScore(report.getTotalScore())
                         .studentLevel(report.getStudentLevel())
+                        .category(getCategoryFromReport(report))
                         .createdAt(report.getCreatedAt())
                         .build())
                 .collect(Collectors.toList());
@@ -141,11 +143,23 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
                 .totalScore(report.getTotalScore())
                 .totalQuestions(report.getTotalQuestions())
                 .studentLevel(report.getStudentLevel())
+                .category(getCategoryFromReport(report))
                 .conceptSummaries(conceptSummaries)
                 .comprehensiveFeedback(report.getComprehensiveFeedback())
                 .nextLearningRecommendation(report.getNextLearningRecommendation())
                 .createdAt(report.getCreatedAt())
                 .build();
+    }
+
+    private String getCategoryFromReport(LevelTestReport report) {
+        List<MemberAnswer> answers = memberAnswerRepository
+                .findTop10ByMemberIdAndIsScoredOrderByIdDesc(report.getMemberId(), true);
+
+        return answers.get(0).getQuestion().getCategory().getCategoryName();
+    }
+
+    private String getCategoryFromAnswers(List<MemberAnswer> answers) {
+        return answers.get(0).getQuestion().getCategory().getCategoryName();
     }
 
     private Integer calculateTotalScore(List<MemberAnswer> answers) {
