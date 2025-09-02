@@ -21,33 +21,33 @@ public class LevelTestController {
     private final CategoryRedisRepository categoryRedisRepository;
     
     // 문제 추가
-    @PostMapping("")
+    @PostMapping("/questions")
     public ResponseEntity<BaseResponse<LevelTestResponse>> createQuestion(@Valid @RequestBody LevelTestRequest request) {
         return ResponseEntity.ok(BaseResponse.ok(levelTestService.createQuestion(request)));
     }
     
     // 문제 수정
-    @PutMapping("/{id}")
+    @PutMapping("/questions/{id}")
     public ResponseEntity<BaseResponse<LevelTestResponse>> updateQuestion(@PathVariable @Valid Long id,
                                                           @Valid @RequestBody LevelTestRequest request) {
         return ResponseEntity.ok(BaseResponse.ok(levelTestService.updateQuestion(id, request)));
     }
     
     // 문제 삭제
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/questions/{id}")
     public ResponseEntity<BaseResponse<String>> deleteQuestion(@PathVariable @Valid Long id) {
         levelTestService.deleteQuestion(id);
         return ResponseEntity.ok(BaseResponse.ok("삭제 완료"));
     }
     
     // 특정 문제 조회
-    @GetMapping("/{id}")
+    @GetMapping("/questions/{id}")
     public ResponseEntity<BaseResponse<LevelTestResponse>> getQuestion(@PathVariable @Valid Long id) {
         return ResponseEntity.ok(BaseResponse.ok(levelTestService.getQuestion(id)));
     }
 
     // 전체 문제 조회
-    @GetMapping("")
+    @GetMapping("/questions")
     public ResponseEntity<BaseResponse<List<LevelTestResponse>>> getAllQuestions() {
         return ResponseEntity.ok(BaseResponse.ok(levelTestService.getAllQuestions()));
     }
