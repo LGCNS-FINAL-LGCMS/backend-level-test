@@ -71,7 +71,7 @@ public class GradingPrompt {
                 question.getQuestion(),
                 question.getAnswer(),
                 buildScoringCriteria(question),
-                memberAnswer != null ? memberAnswer : "(답변 없음)",
+                memberAnswer == null || memberAnswer.isBlank() ? "(답변 없음)" : memberAnswer,
                 getGradingInstructions()
         );
     }
@@ -126,15 +126,21 @@ public class GradingPrompt {
 
     private static String buildQuestionsAndAnswersSection(List<MemberAnswer> answers) {
         return answers.stream()
-                .map(answer -> String.format(
-                        "[문제 %d] (%s - %s) %s\n[학생답변] %s\n[점수] %d점",
-                        answers.indexOf(answer) + 1,
-                        answer.getQuestion().getCategory().getCategoryName(),
-                        answer.getQuestion().getDifficulty().getDifficultyName(),
-                        answer.getQuestion().getQuestion(),
-                        answer.getMemberAnswer(),
-                        answer.getScore() != null ? answer.getScore() : 0
-                ))
+                .map(answer -> {
+                    String memberAnswerText = (answer.getMemberAnswer() == null || answer.getMemberAnswer().isBlank())
+                            ? "(답변 없음)"
+                            : answer.getMemberAnswer();
+
+                    return String.format(
+                            "[문제 %d] (%s - %s) %s\n[학생답변] %s\n[점수] %d점",
+                            answers.indexOf(answer) + 1,
+                            answer.getQuestion().getCategory().getCategoryName(),
+                            answer.getQuestion().getDifficulty().getDifficultyName(),
+                            answer.getQuestion().getQuestion(),
+                            memberAnswerText,
+                            answer.getScore() != null ? answer.getScore() : 0
+                    );
+                })
                 .collect(Collectors.joining("\n\n"));
     }
 
@@ -169,6 +175,11 @@ public class GradingPrompt {
            - LOW(하) 난이도: 0-8점 만점
            - MEDIUM(중) 난이도: 0-10점 만점
            - HIGH(상) 난이도: 0-12점 만점
+           
+           **scoringDetails 작성 가이드라인:**
+           1. **[채점 기준]에 제시된 '평가 가중치' 항목들을 `criterion`으로 사용하세요.**
+              - 예시: 평가 가중치에 "개념 이해도: 50%", "설명 완전성: 30%"가 있다면, `scoringDetails` 배열에는 `criterion`이 "개념 이해도"인 객체와 "설명 완전성"인 객체가 각각 포함되어야 합니다.
+           2. 각 `criterion`의 `points`(배점)는 문제의 총점에 해당 가중치를 곱하여 정수로 계산하세요. (예: 10점 만점 문제에 가중치 30% -> 3점)
            
            채점 가이드라인:
            1. 개념 이해도를 가장 중요하게 평가 (핵심 내용의 정확성)
