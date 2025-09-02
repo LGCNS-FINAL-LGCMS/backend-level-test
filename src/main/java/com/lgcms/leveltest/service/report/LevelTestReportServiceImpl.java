@@ -52,7 +52,12 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
         // 레포트 데이터 계산
         Integer totalScore = calculateTotalScore(allAnswers);
         StudentLevel studentLevel = determineStudentLevel(totalScore);
-        List<ConceptAnalysis> conceptSummaries = getConceptSummariesFromAI(memberId);
+
+        // 문제 기반으로 주요 개념 6개 추출
+        List<ConceptAnalysis> fixedConcepts = extractFixedConceptsFromQuestions(allAnswers);
+
+        // 추출된 개념들에 대해 수강생 답변 기반으로 점수 계산
+        List<ConceptAnalysis> conceptSummaries = evaluateConceptsBasedOnAnswers(fixedConcepts, allAnswers);
         String comprehensiveFeedback = generateComprehensiveFeedback(memberId);
         String nextLearningRecommendation = generateLearningRecommendation(conceptSummaries, studentLevel);
 
@@ -95,6 +100,87 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
                 .nextLearningRecommendation(savedReport.getNextLearningRecommendation())
                 .createdAt(savedReport.getCreatedAt())
                 .build();
+    }
+
+    private List<ConceptAnalysis> extractFixedConceptsFromQuestions(List<MemberAnswer> answers) {
+        // 10개 문제의 카테고리, 난이도, 핵심 키워드를 LLM에게 전달하여
+        // 주요 개념 6개를 추출하도록 요청
+        StringBuilder questionsInfo = new StringBuilder();
+        for (MemberAnswer answer : answers) {
+            LevelTest question = answer.getQuestion();
+            questionsInfo.append(String.format(
+                    "[문제 %d] %s - %s난이도\n문제: %s\n핵심키워드: %s\n\n",
+                    answers.indexOf(answer) + 1,
+                    question.getCategory().getCategoryName(),
+                    question.getDifficulty().getDifficultyName(),
+                    question.getQuestion(),
+                    String.join(", ", question.getMustInclude())
+            ));
+        }
+
+        String prompt = String.format("""
+        다음 10개 문제를 분석하여 가장 중요한 6개 핵심 개념을 추출해주세요:
+        
+        %s
+        
+        JSON 형식으로 6개 개념만 반환:
+        [
+            {
+                "conceptName": "구체적인 개념명",
+                "score": 1,
+                "comment": "평가 대기중"
+            }
+        ]
+        """, questionsInfo.toString());
+
+        // AI 호출 및 파싱
+        String response = conceptAnalysisChatClient.prompt().user(prompt).call().content();
+        return parseConceptAnalysisFromResponse(response);
+    }
+
+    private List<ConceptAnalysis> evaluateConceptsBasedOnAnswers(List<ConceptAnalysis> fixedConcepts, List<MemberAnswer> answers) {
+        // 각 고정 개념에 대해 수강생의 10개 답변을 종합 분석하여 점수 부여
+        StringBuilder analysisData = new StringBuilder();
+
+        // 수강생 답변 정보 구성
+        for (MemberAnswer answer : answers) {
+            analysisData.append(String.format(
+                    "[문제 %d] %s (점수: %d점)\n답변: %s\n\n",
+                    answers.indexOf(answer) + 1,
+                    answer.getQuestion().getQuestion(),
+                    answer.getScore() != null ? answer.getScore() : 0,
+                    answer.getMemberAnswer() != null ? answer.getMemberAnswer() : "(답변 없음)"
+            ));
+        }
+
+        String prompt = String.format("""
+        다음은 6개 핵심 개념과 수강생의 답변입니다:
+        
+        [평가할 개념들]
+        %s
+        
+        [수강생 답변 분석]
+        %s
+        
+        수강생의 답변을 바탕으로 각 개념에 대한 이해도를 1-5점으로 평가하고 적절한 코멘트를 작성해주세요.
+        코멘트는 요약해서 간략하게 작성해주세요:
+        
+        JSON 형식으로 정확히 6개 반환:
+        [
+            {
+                "conceptName": "개념명",
+                "score": 1-5점,
+                "comment": "이해도에 따른 코멘트"
+            }
+        ]
+        """,
+                fixedConcepts.stream()
+                        .map(c -> "- " + c.getConceptName())
+                        .collect(Collectors.joining("\n")),
+                analysisData.toString());
+
+        String response = conceptAnalysisChatClient.prompt().user(prompt).call().content();
+        return parseConceptAnalysisFromResponse(response);
     }
 
     @Override
@@ -174,63 +260,6 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
         return StudentLevel.LOW;
     }
 
-    private List<ConceptAnalysis> getConceptSummariesFromAI(Long memberId) {
-        try {
-            String prompt = buildConceptAnalysisPrompt(memberId);
-            String response = conceptAnalysisChatClient
-                    .prompt()
-                    .user(prompt)
-                    .call()
-                    .content();
-
-            List<ConceptAnalysis> result = parseConceptAnalysisFromResponse(response);
-            if (result.isEmpty()) {
-                throw new RuntimeException("AI 응답이 비어있음");
-            }
-            return result;
-        } catch (Exception e) {
-            log.error("AI 개념 분석 실패, 폴백 방식 사용", e);
-            return aggregateConceptAnalyses(memberAnswerRepository.findTop10ByMemberIdAndIsScoredOrderByIdDesc(memberId, true));
-        }
-    }
-
-    private String buildConceptAnalysisPrompt(Long memberId) {
-        List<MemberAnswer> answers = memberAnswerRepository.findTop10ByMemberIdAndIsScoredOrderByIdDesc(memberId, true);
-
-        StringBuilder allConcepts = new StringBuilder();
-        for (MemberAnswer answer : answers) {
-            List<ConceptAnalysis> concepts = extractConceptAnalyses(answer);
-            if (!concepts.isEmpty()) {
-                allConcepts.append(String.format("[문제 %d] ", answers.indexOf(answer) + 1));
-                for (ConceptAnalysis concept : concepts) {
-                    allConcepts.append(String.format("%s(점수:%d, %s) ",
-                            concept.getConceptName(), concept.getScore(), concept.getComment()));
-                }
-                allConcepts.append("\n");
-            }
-        }
-
-        return String.format("""
-            다음은 학습자의 각 문제별 개념 이해도 분석입니다:
-            
-            %s
-            
-            위 개념들을 분석하여 다음 작업을 수행해주세요:
-            1. 의미가 중복되거나 유사한 개념들은 하나로 통합
-            2. 가장 개선이 필요한(점수가 낮은) 6개 핵심 개념만 선별
-            3. 각 개념의 평균 점수와 대표적인 코멘트 선택
-            
-            JSON 형식으로 정확히 6개만 응답:
-            [
-                {
-                    "conceptName": "통합된 개념명",
-                    "score": 평균점수(1-5 사이의 정수),
-                    "comment": "대표 코멘트"
-                }
-            ]
-            """, allConcepts.toString());
-    }
-
     private List<ConceptAnalysis> parseConceptAnalysisFromResponse(String response) {
         try {
             String cleanedJson = response
@@ -245,59 +274,6 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
 
         } catch (Exception e) {
             log.error("개념 분석 응답 파싱 실패: {}", response, e);
-            return new ArrayList<>();
-        }
-    }
-
-    private List<ConceptAnalysis> aggregateConceptAnalyses(List<MemberAnswer> answers) {
-        Map<String, List<ConceptAnalysis>> conceptMap = new HashMap<>();
-
-        for (MemberAnswer answer : answers) {
-            List<ConceptAnalysis> concepts = extractConceptAnalyses(answer);
-            for (ConceptAnalysis concept : concepts) {
-                conceptMap.computeIfAbsent(concept.getConceptName(), k -> new ArrayList<>())
-                        .add(concept);
-            }
-        }
-
-        List<ConceptAnalysis> result = new ArrayList<>();
-        for (Map.Entry<String, List<ConceptAnalysis>> entry : conceptMap.entrySet()) {
-            String conceptName = entry.getKey();
-            List<ConceptAnalysis> conceptList = entry.getValue();
-
-            double avgScore = conceptList.stream()
-                    .mapToInt(ConceptAnalysis::getScore)
-                    .average()
-                    .orElse(1.0);
-
-            int finalScore = (int) Math.round(avgScore);
-            finalScore = Math.max(1, Math.min(5, finalScore));
-
-            String representativeComment = conceptList.get(conceptList.size() - 1).getComment();
-
-            result.add(ConceptAnalysis.builder()
-                    .conceptName(conceptName)
-                    .score(finalScore)
-                    .comment(representativeComment)
-                    .build());
-        }
-
-        return result.stream()
-                .sorted(Comparator.comparingInt(ConceptAnalysis::getScore))
-                .limit(6)
-                .collect(Collectors.toList());
-    }
-
-    private List<ConceptAnalysis> extractConceptAnalyses(MemberAnswer answer) {
-        if (answer.getConceptAnalyses() == null || answer.getConceptAnalyses().isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        try {
-            TypeReference<List<ConceptAnalysis>> typeRef = new TypeReference<List<ConceptAnalysis>>() {};
-            return objectMapper.readValue(answer.getConceptAnalyses(), typeRef);
-        } catch (Exception e) {
-            log.error("Failed to parse concept analyses for answer ID: {}", answer.getId(), e);
             return new ArrayList<>();
         }
     }
@@ -353,8 +329,9 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
             다음 내용을 자연스럽게 포함하되 소제목 없이 하나의 문단으로 작성하세요:
             
             - 전반적인 실력 수준과 이해도
-            - 주요 강점 영역 1-2개
-            - 가장 시급한 개선점 1-2개
+            - 실제 보여준 강점이 있다면 구체적으로 언급, 없다면 강점 언급하지 않음
+            - 가장 시급한 개선점 2-3개 (구체적 근거와 함께)
+            - 모든 평가는 실제 답변 내용과 점수를 근거로 작성
             - 구체적인 학습 방향 제시
             
             ※ 마크다운 형식이나 소제목 없이 일반 텍스트로만 작성하세요.
