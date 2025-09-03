@@ -168,6 +168,21 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
         코멘트는 요약해서 간략하게 작성해주세요.
         score는 무조건 1~5점 사이의 정수값으로 반환하세요:
         
+       ### 예시 ###
+       [
+         {
+          "conceptName": "예시 개념 1",
+          "score": 5,
+          "comment": "개념을 완벽하게 이해하고 있습니다."
+         },
+         {
+          "conceptName": "예시 개념 2",
+          "score": 2,
+          "comment": "일부 오해가 있어 보충 학습이 필요합니다."
+         }
+       ]
+       ### 예시 끝 ###
+        
         JSON 형식으로 정확히 6개 반환:
         [
             {
