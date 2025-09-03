@@ -30,6 +30,7 @@ public class CategoryMappingService {
 
     public List<Category> mapToDbCategories(List<CategoryItem> memberCategories) {
         return memberCategories.stream()
+                .filter(categoryItem -> categoryItem != null && categoryItem.name() != null)
                 .map(categoryItem -> CATEGORY_MAPPING.get(categoryItem.name()))
                 .filter(category -> category != null)
                 .distinct()

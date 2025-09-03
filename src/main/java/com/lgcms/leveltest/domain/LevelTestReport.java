@@ -22,6 +22,9 @@ public class LevelTestReport {
     @Column(name = "member_id", nullable = false)
     private Long memberId;
 
+    @Column(name = "category", nullable = false, length = 50)
+    private String category;
+
     @Column(name = "total_score", nullable = false)
     private Integer totalScore;
 

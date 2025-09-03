@@ -52,6 +52,7 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
         // 레포트 데이터 계산
         Integer totalScore = calculateTotalScore(allAnswers);
         StudentLevel studentLevel = determineStudentLevel(totalScore);
+        String category = getCategoryFromAnswers(allAnswers);
 
         // 문제 기반으로 주요 개념 6개 추출
         List<ConceptAnalysis> fixedConcepts = extractFixedConceptsFromQuestions(allAnswers);
@@ -64,6 +65,7 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
         // 레포트 엔티티 생성 및 저장
         LevelTestReport report = LevelTestReport.builder()
                 .memberId(memberId)
+                .category(category)
                 .totalScore(totalScore)
                 .totalQuestions(allAnswers.size())
                 .studentLevel(studentLevel)
@@ -163,7 +165,8 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
         %s
         
         수강생의 답변을 바탕으로 각 개념에 대한 이해도를 1-5점으로 평가하고 적절한 코멘트를 작성해주세요.
-        코멘트는 요약해서 간략하게 작성해주세요:
+        코멘트는 요약해서 간략하게 작성해주세요.
+        score는 무조건 1~5점 사이의 정수값으로 반환하세요:
         
         JSON 형식으로 정확히 6개 반환:
         [
@@ -188,14 +191,14 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
     public List<ReportHistoryResponse> getReportHistory(Long memberId) {
         log.info("회원 {}의 레포트 히스토리 조회", memberId);
 
-        List<LevelTestReport> reports = reportRepository.findByMemberIdOrderByCreatedAtDesc(memberId);
+        List<LevelTestReport> reports = reportRepository.findTop3ByMemberIdOrderByCreatedAtDesc(memberId);
 
         return reports.stream()
                 .map(report -> ReportHistoryResponse.builder()
                         .reportId(report.getId())
                         .totalScore(report.getTotalScore())
                         .studentLevel(report.getStudentLevel())
-                        .category(getCategoryFromReport(report))
+                        .category(report.getCategory())
                         .createdAt(report.getCreatedAt())
                         .build())
                 .collect(Collectors.toList());
@@ -229,19 +232,12 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
                 .totalScore(report.getTotalScore())
                 .totalQuestions(report.getTotalQuestions())
                 .studentLevel(report.getStudentLevel())
-                .category(getCategoryFromReport(report))
+                .category(report.getCategory())
                 .conceptSummaries(conceptSummaries)
                 .comprehensiveFeedback(report.getComprehensiveFeedback())
                 .nextLearningRecommendation(report.getNextLearningRecommendation())
                 .createdAt(report.getCreatedAt())
                 .build();
-    }
-
-    private String getCategoryFromReport(LevelTestReport report) {
-        List<MemberAnswer> answers = memberAnswerRepository
-                .findTop10ByMemberIdAndIsScoredOrderByIdDesc(report.getMemberId(), true);
-
-        return answers.get(0).getQuestion().getCategory().getCategoryName();
     }
 
     private String getCategoryFromAnswers(List<MemberAnswer> answers) {
