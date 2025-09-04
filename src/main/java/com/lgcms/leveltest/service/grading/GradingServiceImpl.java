@@ -50,7 +50,7 @@ public class GradingServiceImpl implements GradingService {
             memberAnswerUpdateService.updateWithScoringResult(memberAnswer, result);
 
             log.info("Grading completed for answer ID: {}. Score: {}",
-                    memberAnswer.getId(), result.getScore());
+                    memberAnswer.getId(), result.getStudentScore());
             return result;
 
         } catch (Exception e) {
@@ -93,7 +93,7 @@ public class GradingServiceImpl implements GradingService {
             ScoringResult result = objectMapper.readValue(cleanedJson, ScoringResult.class);
 
             log.info("=== PARSED RESULT ===");
-            log.info("Score: {}", result.getScore());
+            log.info("Score: {}", result.getStudentScore());
             log.info("Feedback: {}", result.getFeedback());
             log.info("Strengths: {}", result.getStrengths());
             log.info("Improvements: {}", result.getImprovements());
@@ -106,7 +106,7 @@ public class GradingServiceImpl implements GradingService {
             log.error("Error details: ", e);
 
             return ScoringResult.builder()
-                    .score(75)
+                    .studentScore(75)
                     .feedback("AI 채점 응답 파싱에 실패했습니다. 답변 내용: " +
                             (jsonResponse.length() > 100 ?
                                     jsonResponse.substring(0, 100) + "..." : jsonResponse))

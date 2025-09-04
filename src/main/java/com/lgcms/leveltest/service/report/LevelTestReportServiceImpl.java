@@ -125,11 +125,13 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
         
         %s
         
+        주의: score는 임시값(1)으로 설정하세요. 실제 평가는 별도 단계에서 진행됩니다.
+        
         JSON 형식으로 6개 개념만 반환:
         [
             {
-                "conceptName": "구체적인 개념명",
-                "score": 1,
+                "conceptName": "구체적인 개념명 (예: Spring Bean 생명주기, 의존성 주입 등)",
+                "score": 1,  // 임시값 (실제 평가는 다음 단계에서)
                 "comment": "평가 대기중"
             }
         ]
@@ -156,46 +158,88 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
         }
 
         String prompt = String.format("""
-        다음은 6개 핵심 개념과 수강생의 답변입니다:
-        
-        [평가할 개념들]
-        %s
-        
-        [수강생 답변 분석]
-        %s
-        
-        수강생의 답변을 바탕으로 각 개념에 대한 이해도를 1-5점으로 평가하고 적절한 코멘트를 작성해주세요.
-        코멘트는 요약해서 간략하게 작성해주세요.
-        score는 무조건 1~5점 사이의 정수값으로 반환하세요:
-        
-       ### 예시 ###
-       [
-         {
-          "conceptName": "예시 개념 1",
-          "score": 5,
-          "comment": "개념을 완벽하게 이해하고 있습니다."
-         },
-         {
-          "conceptName": "예시 개념 2",
-          "score": 2,
-          "comment": "일부 오해가 있어 보충 학습이 필요합니다."
-         }
-       ]
-       ### 예시 끝 ###
-        
-        JSON 형식으로 정확히 6개 반환:
-        [
-            {
-                "conceptName": "개념명",
-                "score": 1-5점,
-                "comment": "이해도에 따른 코멘트"
-            }
-        ]
-        """,
+            <role>
+            당신은 학생의 답변을 분석하여 기술 개념 이해도를 평가하는 AI 전문 분석가입니다.
+            
+            중요: 이 작업에서는 오직 "개념 이해도 별점"만 평가합니다.
+            문제별 배점(studentScore)과는 완전히 다른 평가 기준입니다.
+            </role>
+            
+            <score_system_clarification>
+            점수 체계 구분
+            
+            사용하지 않는 점수: studentScore (8점/10점/12점 - 문제별 배점)
+            사용하는 점수: 개념별 이해도 별점 (1~5점만)
+            
+            개념 이해도 별점 기준:
+            1점: 전혀 이해하지 못함
+            2점: 부족한 이해
+            3점: 보통 이해
+            4점: 좋은 이해
+            5점: 완벽한 이해
+            
+            절대 규칙: 1,2,3,4,5 외의 다른 숫자는 금지 (0, 6, 7, 8, 소수점 등)
+            </score_system_clarification>
+            
+            <answers>학생의 전체 답변 내용\n%s</answers>
+            
+            <concepts_to_evaluate>평가할 핵심 개념\n%s</concepts_to_evaluate>
+            
+            <understanding_rubric>
+            개념 이해도 평가 기준 (별점 1-5)
+            
+            5별점 (완벽한 이해):
+            - 관련된 모든 답변에서 개념을 매우 정확하고 상세하게 설명
+            - 핵심 용어를 올바르게 사용하고 원리를 명확히 이해
+            
+            4별점 (좋은 이해):
+            - 개념을 올바르게 이해하고 있으나 일부 답변에서 설명이 약간 부족
+            - 전반적으로 올바른 방향이지만 사소한 오류나 누락 존재
+            
+            3별점 (보통 이해):
+            - 개념의 기본적인 내용은 이해하고 있음
+            - 중요한 부분을 놓치거나 일부 오해가 드러남
+            
+            2별점 (부족한 이해):
+            - 관련된 키워드는 언급했으나 개념을 거의 설명하지 못함
+            - 설명에 큰 오류가 있거나 이해도가 매우 제한적
+            
+            1별점 (전혀 이해하지 못함):
+            - 관련된 답변이 없거나 "모르겠다"고 답변
+            - 질문과 완전히 무관한 내용만 언급
+            </understanding_rubric>
+            
+            <critical_instructions>
+            절대적 지시사항
+            1. 개념별 이해도는 반드시 1,2,3,4,5 중 하나의 정수만 사용
+            2. 문제 배점(8-12점)과 절대 혼동하지 말 것
+            3. 6점 이상, 0점 이하, 소수점은 시스템 오류 발생
+            4. 각 개념별로 전체 답변 내용을 종합 분석하여 별점 부여
+            5. JSON 출력 전 모든 별점이 1-5 범위인지 재확인 필수
+            </critical_instructions>
+            
+            <output_format>
+            필수 JSON 출력 형식
+            [
+                {
+                    "conceptName": "Spring Bean 생명주기",
+                    "score": 3,  // 반드시 1,2,3,4,5 중 하나
+                    "comment": "기본 개념은 이해하나 세부사항 부족"
+                },
+                {
+                    "conceptName": "의존성 주입(DI)",
+                    "score": 4,  // 반드시 1,2,3,4,5 중 하나
+                    "comment": "개념을 잘 이해하고 있음"
+                }
+            ]
+            최종 점검: 출력 전 모든 score 값이 1-5 사이인지 확인!
+            </output_format>
+            """,
+                analysisData.toString(),
                 fixedConcepts.stream()
                         .map(c -> "- " + c.getConceptName())
-                        .collect(Collectors.joining("\n")),
-                analysisData.toString());
+                        .collect(Collectors.joining("\n"))
+        );
 
         String response = conceptAnalysisChatClient.prompt().user(prompt).call().content();
         return parseConceptAnalysisFromResponse(response);
@@ -273,18 +317,31 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
 
     private List<ConceptAnalysis> parseConceptAnalysisFromResponse(String response) {
         try {
-            String cleanedJson = response
+            String cleaned = response
                     .replaceAll("```json\\s*", "")
-                    .replaceAll("```\\s*$", "")
-                    .trim();
+                    .replaceAll("```\\s*$", "");
 
-            TypeReference<List<ConceptAnalysis>> typeRef = new TypeReference<List<ConceptAnalysis>>() {};
-            List<ConceptAnalysis> concepts = objectMapper.readValue(cleanedJson, typeRef);
+            int start = cleaned.indexOf('[');
+            int end = cleaned.lastIndexOf(']');
 
-            return concepts.stream().limit(6).collect(Collectors.toList());
+            if (start != -1 && end > start) {
+                cleaned = cleaned.substring(start, end + 1);
+            }
+
+            List<ConceptAnalysis> concepts = objectMapper.readValue(cleaned,
+                    new TypeReference<List<ConceptAnalysis>>() {});
+
+            return concepts.stream()
+                    .limit(6)
+                    .map(concept -> ConceptAnalysis.builder()
+                            .conceptName(concept.getConceptName())
+                            .score(Math.max(1, Math.min(5, concept.getScore())))
+                            .comment(concept.getComment())
+                            .build())
+                    .collect(Collectors.toList());
 
         } catch (Exception e) {
-            log.error("개념 분석 응답 파싱 실패: {}", response, e);
+            log.error("파싱 실패: {}", response, e);
             return new ArrayList<>();
         }
     }
@@ -345,9 +402,9 @@ public class LevelTestReportServiceImpl implements LevelTestReportService {
             - 모든 평가는 실제 답변 내용과 점수를 근거로 작성
             - 구체적인 학습 방향 제시
             
-            ※ 마크다운 형식이나 소제목 없이 일반 텍스트로만 작성하세요.
-            ※ 2-4문장으로 간결하게 작성하세요.
-            ※ '이 학생은' 같은 3인칭 표현은 사용하지 말고, 주어를 생략하거나 직접적인 어조로 작성하세요.
+            - 마크다운 형식이나 소제목 없이 일반 텍스트로만 작성하세요.
+            - 2-4문장으로 간결하게 작성하세요.
+            - '이 학생은' 같은 3인칭 표현은 사용하지 말고, 주어를 생략하거나 직접적인 어조로 작성하세요.
             """, avgScore, answers.size(), questionsAndAnswers);
     }
 

@@ -149,7 +149,7 @@ public class GradingPrompt {
            위 정보를 바탕으로 다음 형식의 JSON으로 채점 결과를 제공해주세요:
            
            {
-               "score": (문제 난이도별 만점 기준의 정수 - 하급:8점, 중급:10점, 상급:12점),
+               "studentScore": (문제 난이도별 만점 기준의 정수 - 하급:8점, 중급:10점, 상급:12점),
                "feedback": "전체적인 피드백 (학생의 이해도 수준과 개선 방향)",
                "strengths": "잘한 점 또는 올바르게 이해한 부분 (없으면 '기본 개념 학습 필요')",
                "improvements": "개선할 점 및 추가 학습이 필요한 영역",
@@ -157,7 +157,7 @@ public class GradingPrompt {
                "conceptAnalyses": [
                    {
                        "conceptName": "개념명",
-                       "score": (1-5 사이의 정수),
+                       "score": [1,2,3,4,5],
                        "comment": "해당 개념에 대한 간단한 평가"
                    }
                ],
@@ -170,6 +170,10 @@ public class GradingPrompt {
                    }
                ]
            }
+           
+           * 중요한 점수 체계 구분:
+             - studentScore: 문제 배점 (8/10/12점) ← 문제 난이도별 점수
+             - conceptAnalyses[].score: 이해도 별점 (1/2/3/4/5점) ← 개념별 별점
            
            **중요: 점수는 다음 기준으로 채점하세요:**
            - LOW(하) 난이도: 0-8점 만점

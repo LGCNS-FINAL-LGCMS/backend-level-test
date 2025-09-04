@@ -45,7 +45,7 @@ public class MemberAnswerUpdateService {
                 .memberId(memberAnswer.getMemberId())
                 .question(memberAnswer.getQuestion())
                 .memberAnswer(memberAnswer.getMemberAnswer())
-                .score(result.getScore())
+                .score(result.getStudentScore())
                 .feedback(result.getFeedback())
                 .isScored(true)
                 .scoringDetails(detailsJson)
