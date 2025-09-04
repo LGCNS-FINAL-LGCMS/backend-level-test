@@ -12,8 +12,8 @@ spring:
     bedrock:
       aws:
         region: ap-northeast-2
-        access-key: ${AWS_ACCESS_KEY_ID}
-        secret-key: ${AWS_SECRET_ACCESS_KEY}
+        access-key: test
+        secret-key: test
       converse:
         chat:
           options:
