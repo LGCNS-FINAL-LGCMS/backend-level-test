@@ -10,7 +10,7 @@ import java.util.List;
 @AllArgsConstructor
 public class ScoringResult {
 
-    private Integer score;
+    private Integer studentScore;
     private String feedback;
     private List<String> mustIncludeMatched;
     private String strengths;

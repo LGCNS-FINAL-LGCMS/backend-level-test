@@ -12,8 +12,8 @@ import java.util.Optional;
 @Repository
 public interface LevelTestReportRepository extends JpaRepository<LevelTestReport, Long> {
 
-    // 특정 회원의 레포트 목록 조회 (최신순)
-    List<LevelTestReport> findByMemberIdOrderByCreatedAtDesc(Long memberId);
+    // 특정 회원의 레포트 목록 조회 (최신 3개)
+    List<LevelTestReport> findTop3ByMemberIdOrderByCreatedAtDesc(Long memberId);
 
     // 개념별 이해도 요약 조회
     @Query("SELECT r FROM LevelTestReport r LEFT JOIN FETCH r.conceptAnalyses WHERE r.id = :reportId")
