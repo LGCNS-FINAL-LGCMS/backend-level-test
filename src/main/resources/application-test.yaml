@@ -45,3 +45,20 @@ spring:
     producer:
       properties:
         spring.json.add.type.headers: false
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: test
+    password: test
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          ssl:
+            trust: smtp.gmail.com
+admin:
+    email: test
