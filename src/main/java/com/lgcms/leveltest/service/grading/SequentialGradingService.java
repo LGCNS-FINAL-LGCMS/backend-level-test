@@ -1,6 +1,9 @@
 package com.lgcms.leveltest.service.grading;
 
+import com.lgcms.leveltest.common.kafka.dto.LevelTestReportRequested;
 import com.lgcms.leveltest.domain.MemberAnswer;
+import com.lgcms.leveltest.dto.response.report.ReportDetailResponse;
+import com.lgcms.leveltest.event.producer.LevelTestEventProducer;
 import com.lgcms.leveltest.service.report.LevelTestReportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,11 +19,12 @@ public class SequentialGradingService {
 
     private final GradingService gradingService;
     private final LevelTestReportService reportService;
+    private final LevelTestEventProducer levelTestEventProducer;
 
     @Async("gradingExecutor")
     public void gradeAllAnswersSequentially(Long memberId, List<MemberAnswer> answers) {
         log.info("회원 {}의 답변 순차 채점 시작. 총 {}문제", memberId, answers.size());
-
+        ReportDetailResponse reportDetailResponse = null;
         int successCount = 0;
         for (int i = 0; i < answers.size(); i++) {
             MemberAnswer answer = answers.get(i);
@@ -41,7 +45,7 @@ public class SequentialGradingService {
         // 모든 채점 완료 후 자동으로 레포트 생성
         if (successCount == answers.size() && successCount >= 10) {
             try {
-                reportService.createReport(memberId);
+                reportDetailResponse = reportService.createReport(memberId);
                 log.info("회원 {}의 레포트 자동 생성 완료", memberId);
             } catch (Exception e) {
                 log.error("레포트 자동 생성 실패: {}", e.getMessage());
@@ -49,5 +53,11 @@ public class SequentialGradingService {
         }
 
         log.info("회원 {}의 순차 채점 완료. 성공: {}/{}", memberId, successCount, answers.size());
+        LevelTestReportRequested levelTestReportRequested = LevelTestReportRequested.builder()
+                .studentReportId(reportDetailResponse.getReportId())
+                .memberId(memberId)
+                .build();
+        levelTestEventProducer.LevelTestReportRequested(levelTestReportRequested);
+        log.info("회원 {}의 레포트에 대한 알림 전송", memberId);
     }
 }

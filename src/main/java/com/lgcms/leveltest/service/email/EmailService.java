@@ -25,7 +25,6 @@ public class EmailService {
             message.setTo(adminEmail);
             message.setSubject("[Level Test System] 카테고리 " + eventType + " 알림");
             message.setText(buildEmailContent(categoryName, eventType));
-            message.setFrom("noreply@lgcms.com");
 
             javaMailSender.send(message);
             log.info("카테고리 {} 이벤트 알림 이메일을 Admin({})에게 전송 완료", eventType, adminEmail);
