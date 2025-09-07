@@ -37,20 +37,31 @@ spring:
 
   kafka:
     bootstrap-servers: localhost:38123
+    template:
+      observation-enabled: true
+    listener:
+      observation-enabled: true
+      ack-mode: manual
 
     consumer:
       group-id: ${spring.application.name}
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       enable-auto-commit: false
-      auto-offset-reset: latest
+      auto-offset-reset: earliest
       max-poll-records: 10
       properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
         spring.json.trusted.packages: "*"
         spring.json.use.type.headers: false
+        spring.json.value.default.type: com.lgcms.leveltest.common.kafka.dto.KafkaEvent
 
     producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.add.type.headers: false
-
   mail:
     host: smtp.gmail.com
     port: 587

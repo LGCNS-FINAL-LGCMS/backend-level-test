@@ -18,7 +18,7 @@ public class CategoryConsumer {
     private final KafkaEventFactory kafkaEventFactory;
     private final EmailService emailService;
 
-    @KafkaListener(topics = "CATEGORY", containerFactory = "defaultFactory")
+    @KafkaListener(topics = "CATEGORY")
     public void handleCategoryEvent(KafkaEvent<?> event) {
         try {
             log.info("카테고리 이벤트 수신: eventId={}, eventType={}",
