@@ -8,6 +8,7 @@ import com.lgcms.leveltest.service.report.LevelTestReportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -19,8 +20,9 @@ public class CategoryConsumer {
     private final EmailService emailService;
 
     @KafkaListener(topics = "CATEGORY", containerFactory = "defaultFactory")
-    public void handleCategoryEvent(KafkaEvent<?> event) {
+    public void handleCategoryEvent(KafkaEvent<?> event, Acknowledgment ack) {
         try {
+            ack.acknowledge();
             log.info("카테고리 이벤트 수신: eventId={}, eventType={}",
                     event.getEventId(), event.getEventType());
 
