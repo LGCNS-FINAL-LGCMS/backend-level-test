@@ -20,7 +20,7 @@ public class CategoryConsumer {
     private final EmailService emailService;
 
     @KafkaListener(topics = "CATEGORY")
-    public void handleCategoryEvent(KafkaEvent<?> event) {
+    public void handleCategoryEvent(KafkaEvent<?> event, Acknowledgment ack) {
         try {
             ack.acknowledge();
             log.info("카테고리 이벤트 수신: eventId={}, eventType={}",
